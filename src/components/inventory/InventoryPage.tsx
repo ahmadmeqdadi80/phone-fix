@@ -415,10 +415,11 @@ export function InventoryPage() {
                         <span className={`font-bold ${isLowStock(item) ? 'text-red-600' : ''}`}>{item.quantity}</span>
                         {isLowStock(item) && <AlertTriangle className="h-4 w-4 text-red-500" />}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <span className="text-orange-600">{item.costPrice.toLocaleString()}</span>
                         <span className="text-muted-foreground">→</span>
                         <span className="text-blue-600">{item.sellingPrice.toLocaleString()}</span>
+                        <span className="text-green-600 font-bold">+{((item.sellingPrice - item.costPrice) || 0).toLocaleString()}</span>
                       </div>
                     </div>
                     <div className="flex gap-1 pt-2">
