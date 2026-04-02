@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#grad)"/>
+  <!-- Phone body -->
+  <rect x="156" y="60" width="200" height="392" rx="30" fill="#1e293b" stroke="#334155" stroke-width="4"/>
+  <!-- Screen -->
+  <rect x="172" y="90" width="168" height="300" rx="8" fill="#0f172a"/>
+  <!-- Screen content lines -->
+  <rect x="190" y="120" width="80" height="8" rx="4" fill="#4ade80"/>
+  <rect x="190" y="145" width="130" height="6" rx="3" fill="#64748b"/>
+  <rect x="190" y="165" width="100" height="6" rx="3" fill="#64748b"/>
+  <!-- Wrench icon -->
+  <g transform="translate(200, 200)">
+    <path d="M60 0 L70 10 L30 50 L20 40 Z" fill="#fbbf24"/>
+    <circle cx="75" cy="15" r="20" fill="none" stroke="#fbbf24" stroke-width="8"/>
+    <rect x="10" y="45" width="25" height="35" rx="4" fill="#fbbf24" transform="rotate(-45, 22, 62)"/>
+  </g>
+  <!-- Home button -->
+  <circle cx="256" cy="420" r="20" fill="#334155"/>
+  <!-- Speaker -->
+  <rect x="226" y="70" width="60" height="6" rx="3" fill="#334155"/>
+  <!-- Dollar sign -->
+  <text x="256" y="370" font-family="Arial" font-size="40" font-weight="bold" fill="#4ade80" text-anchor="middle">$</text>
+</svg>

@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#7c3aed">
+  <title>نظام محاسبة صيانة الموبايل</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Cairo', 'sans-serif'] },
+          colors: {
+            primary: { 50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe', 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed', 800: '#6b21a8', 900: '#581c87' }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    .animate-slide-in { animation: slideIn 0.3s ease-out; }
+    .animate-scale-in { animation: scaleIn 0.2s ease-out; }
+    
+    /* Glass Effect */
+    .glass {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .dark .glass {
+      background: rgba(30, 41, 59, 0.8);
+    }
+    
+    /* Gradient Text */
+    .gradient-text {
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Card Hover */
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);
+    }
+    
+    /* Button Active */
+    .btn-press:active {
+      transform: scale(0.97);
+    }
+    
+    /* Status Colors */
+    .status-pending { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+    .status-diagnosing { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+    .status-waiting { background: linear-gradient(135deg, #fb923c, #f97316); }
+    .status-progress { background: linear-gradient(135deg, #a78bfa, #8b5cf6); }
+    .status-completed { background: linear-gradient(135deg, #4ade80, #22c55e); }
+    .status-delivered { background: linear-gradient(135deg, #2dd4bf, #14b8a6); }
+    .status-cancelled { background: linear-gradient(135deg, #f87171, #ef4444); }
+  </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
+  <div id="app"></div>
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2"></div>
+  
+  <script>
+    // ==================== المتجر ====================
+    const Store = {
+      data: { customers: [], repairs: [], inventory: [], invoices: [], expenses: [] },
+      
+      init() {
+        const saved = localStorage.getItem('mobileRepairApp_v2');
+        if (saved) {
+          try { this.data = JSON.parse(saved); } catch(e) {}
+        }
+        if (!this.data.customers?.length) this.sampleData();
+      },
+      
+      save() {
+        localStorage.setItem('mobileRepairApp_v2', JSON.stringify(this.data));
+      },
+      
+      sampleData() {
+        this.data = {
+          customers: [
+            { id: 'c1', name: 'أحمد محمد علي', phone: '0791234567', address: 'عمان - عبدون', notes: 'عميل VIP', totalSpent: 500 },
+            { id: 'c2', name: 'سارة خالد أحمد', phone: '0797654321', address: 'الزرقاء - الرصيفة', notes: '', totalSpent: 150 },
+            { id: 'c3', name: 'محمد عبدالله', phone: '0799876543', address: 'إربد', notes: '', totalSpent: 0 },
+            { id: 'c4', name: 'فاطمة حسن', phone: '0795551234', address: 'عمان - خلدا', notes: 'تواصل واتساب', totalSpent: 80 }
+          ],
+          repairs: [
+            { id: 'r1', customerId: 'c1', deviceType: 'iPhone', deviceModel: 'iPhone 14 Pro Max', problem: 'شاشة مكسورة بالكامل مع تغير لون', status: 'DELIVERED', maintenanceCost: 180, finalCost: 350, deposit: 100, paidAmount: 350, debt: 0, createdAt: '2024-02-20', deliveredAt: '2024-02-23', notes: 'تم استبدال الشاشة بأصلية' },
+            { id: 'r2', customerId: 'c2', deviceType: 'Samsung', deviceModel: 'Galaxy S23 Ultra', problem: 'البطارية تفرغ بسرعة كبيرة والجهاز يسخن', status: 'IN_PROGRESS', maintenanceCost: 45, finalCost: 120, deposit: 30, paidAmount: 0, debt: 0, createdAt: '2024-02-25', notes: 'تحتاج بطارية جديدة' },
+            { id: 'r3', customerId: 'c3', deviceType: 'Xiaomi', deviceModel: 'Redmi Note 13 Pro', problem: 'الجهاز لا يشتغل نهائياً', status: 'DIAGNOSING', maintenanceCost: null, finalCost: null, deposit: 0, paidAmount: 0, debt: 0, createdAt: '2024-02-26', notes: '' },
+            { id: 'r4', customerId: 'c4', deviceType: 'iPhone', deviceModel: 'iPhone 12', problem: 'الشاحن لا يعمل - المنفذ متسخ', status: 'COMPLETED', maintenanceCost: 15, finalCost: 40, deposit: 0, paidAmount: 0, debt: 0, createdAt: '2024-02-26', notes: 'تم تنظيف المنفذ' },
+            { id: 'r5', customerId: 'c1', deviceType: 'Huawei', deviceModel: 'Mate 50 Pro', problem: 'الكاميرا الخلفية لا تعمل', status: 'WAITING_PARTS', maintenanceCost: 80, finalCost: 180, deposit: 50, paidAmount: 0, debt: 0, createdAt: '2024-02-24', notes: 'بانتظار وصول الكاميرا' }
+          ],
+          inventory: [
+            { id: 'i1', name: 'شاشة iPhone 14 Pro Max أصلية', category: 'شاشات', quantity: 3, minQuantity: 2, costPrice: 180, sellingPrice: 280, supplier: 'Apple Parts' },
+            { id: 'i2', name: 'بطارية Samsung Galaxy S23', category: 'بطاريات', quantity: 8, minQuantity: 3, costPrice: 35, sellingPrice: 70, supplier: 'Samsung Parts' },
+            { id: 'i3', name: 'شاحن سريع 45W Samsung', category: 'إكسسوارات', quantity: 12, minQuantity: 5, costPrice: 15, sellingPrice: 35, supplier: 'Local' },
+            { id: 'i4', name: 'كابل USB-C أصلي 2م', category: 'إكسسوارات', quantity: 2, minQuantity: 5, costPrice: 8, sellingPrice: 20, supplier: 'Local' },
+            { id: 'i5', name: 'واقي شاشة iPhone 14', category: 'واقيات', quantity: 25, minQuantity: 10, costPrice: 3, sellingPrice: 10, supplier: 'Local' },
+            { id: 'i6', name: 'كاميرا خلفية iPhone 12', category: 'قطع غيار', quantity: 0, minQuantity: 2, costPrice: 60, sellingPrice: 120, supplier: 'Apple Parts' }
+          ],
+          expenses: [
+            { id: 'e1', category: 'إيجار', description: 'إيجار المحل - شباط 2024', amount: 350, date: '2024-02-01' },
+            { id: 'e2', category: 'كهرباء', description: 'فاتورة الكهرباء - كانون الثاني', amount: 65, date: '2024-02-05' },
+            { id: 'e3', category: 'مشتريات', description: 'شراء قطع غيار من الصين', amount: 500, date: '2024-02-10' },
+            { id: 'e4', category: 'رواتب', description: 'راتب الموظف - شباط', amount: 400, date: '2024-02-28' }
+          ],
+          invoices: [
+            { id: 'inv1', invoiceNumber: 'INV-2024-001', customerId: 'c1', items: [{desc: 'استبدال شاشة iPhone 14 Pro Max', price: 350}], total: 350, paid: 350, status: 'PAID', date: '2024-02-23' }
+          ],
+          settings: {
+            shopName: 'صيانة الموبايل الذكية',
+            phone: '0790000000',
+            address: 'عمان - شارع الملكة رانيا',
+            currency: 'د.أ'
+          }
+        };
+        this.save();
+      },
+      
+      add(col, item) { item.id = Date.now().toString(); item.createdAt = new Date().toISOString(); this.data[col].push(item); this.save(); return item; },
+      update(col, id, data) { const i = this.data[col].findIndex(x => x.id === id); if (i > -1) { this.data[col][i] = {...this.data[col][i], ...data}; this.save(); } },
+      delete(col, id) { this.data[col] = this.data[col].filter(x => x.id !== id); this.save(); },
+      get(col, id) { return this.data[col]?.find(x => x.id === id); }
+    };
+    Store.init();
+    
+    // ==================== الحالة ====================
+    let state = {
+      page: 'dashboard',
+      theme: localStorage.getItem('theme') || 'light',
+      drawer: false,
+      dialog: null,
+      dialogData: null,
+      deleteInfo: null,
+      searchQuery: ''
+    };
+    
+    // ==================== الثوابت ====================
+    const STATUS = [
+      { v: 'PENDING', l: 'قيد الانتظار', c: 'bg-amber-500', icon: 'clock' },
+      { v: 'DIAGNOSING', l: 'قيد التشخيص', c: 'bg-blue-500', icon: 'search' },
+      { v: 'WAITING_PARTS', l: 'انتظار القطع', c: 'bg-orange-500', icon: 'package' },
+      { v: 'IN_PROGRESS', l: 'قيد الإصلاح', c: 'bg-violet-500', icon: 'wrench' },
+      { v: 'COMPLETED', l: 'تم الإصلاح', c: 'bg-green-500', icon: 'check-circle' },
+      { v: 'DELIVERED', l: 'تم التسليم', c: 'bg-teal-500', icon: 'truck' },
+      { v: 'CANCELLED', l: 'ملغي', c: 'bg-red-500', icon: 'x-circle' }
+    ];
+    
+    const DEVICES = ['iPhone', 'Samsung', 'Huawei', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'Nokia', 'LG', 'HTC', 'Sony', 'Google Pixel', 'OnePlus', 'أخرى'];
+    const EXPENSE_CATS = ['إيجار', 'كهرباء', 'ماء', 'رواتب', 'مشتريات', 'صيانة', 'نقل', 'ضرائب', 'تسويق', 'أخرى'];
+    const INVENTORY_CATS = ['شاشات', 'بطاريات', 'قطع غيار', 'إكسسوارات', 'واقيات', 'سماعات', 'أخرى'];
+    
+    // ==================== الدوال المساعدة ====================
+    const fmt = n => (n||0).toLocaleString('ar-SA');
+    const fdate = d => d ? new Date(d).toLocaleDateString('ar-SA', {year:'numeric', month:'short', day:'numeric'}) : '-';
+    const getCust = id => Store.data.customers.find(c => c.id === id)?.name || 'غير معروف';
+    const getStatus = v => STATUS.find(s => s.v === v) || STATUS[0];
+    const $ = id => document.getElementById(id);
+    
+    function toast(msg, type='success') {
+      const container = $('toast-container');
+      const colors = { success: 'bg-green-600', error: 'bg-red-600', warning: 'bg-amber-600', info: 'bg-blue-600' };
+      const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+      const t = document.createElement('div');
+      t.className = `${colors[type]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-fade-in`;
+      t.innerHTML = `<span class="text-lg">${icons[type]}</span><span>${msg}</span>`;
+      container.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+    
+    // ==================== العرض ====================
+    function render() {
+      $('app').innerHTML = renderApp();
+      lucide.createIcons();
+      document.documentElement.classList.toggle('dark', state.theme === 'dark');
+    }
+    
+    function renderApp() {
+      return `
+        ${renderMobileNav()}
+        ${renderDrawer()}
+        ${renderSidebar()}
+        ${renderMain()}
+        ${renderDialog()}
+      `;
+    }
+    
+    function renderMobileNav() {
+      const titles = { dashboard: 'لوحة التحكم', customers: 'العملاء', repairs: 'الصيانة', inventory: 'المخزون', invoices: 'الفواتير', expenses: 'المصاريف', debts: 'الديون', reports: 'التقارير', backup: 'النسخ الاحتياطي', settings: 'الإعدادات' };
+      return `
+        <nav class="lg:hidden fixed top-0 inset-x-0 z-40 glass border-b border-slate-200 dark:border-slate-700">
+          <div class="flex items-center justify-between px-4 py-3">
+            <button onclick="toggleDrawer()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <h1 class="font-bold text-lg">${titles[state.page] || 'الرئيسية'}</h1>
+            <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+              <i data-lucide="${state.theme === 'dark' ? 'sun' : 'moon'}" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </nav>
+      `;
+    }
+    
+    function renderDrawer() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.reduce((s, r) => s + ((r.finalCost||0) - (r.maintenanceCost||0)), 0);
+      const expenses = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      const debts = delivered.reduce((s, r) => s + (r.debt||0), 0);
+      
+      const nav = [
+        { id: 'dashboard', icon: 'layout-dashboard', label: 'لوحة التحكم' },
+        { id: 'repairs', icon: 'wrench', label: 'الصيانة' },
+        { id: 'customers', icon: 'users', label: 'العملاء' },
+        { id: 'inventory', icon: 'package', label: 'المخزون' },
+        { id: 'invoices', icon: 'file-text', label: 'الفواتير' },
+        { id: 'expenses', icon: 'receipt', label: 'المصاريف' },
+        { id: 'debts', icon: 'credit-card', label: 'الديون' },
+        { id: 'reports', icon: 'bar-chart-3', label: 'التقارير' },
+        { id: 'backup', icon: 'database', label: 'النسخ الاحتياطي' },
+        { id: 'settings', icon: 'settings', label: 'الإعدادات' }
+      ];
+      
+      return `
+        <!-- Overlay -->
+        <div class="lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity ${state.drawer ? 'opacity-100' : 'opacity-0 pointer-events-none'}" onclick="toggleDrawer()"></div>
+        
+        <!-- Drawer -->
+        <aside class="lg:hidden fixed top-0 right-0 bottom-0 w-72 bg-white dark:bg-slate-800 z-50 shadow-2xl transform transition-transform ${state.drawer ? 'translate-x-0' : 'translate-x-full'}">
+          <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <i data-lucide="smartphone" class="w-6 h-6 text-white"></i>
+              </div>
+              <div>
+                <h2 class="font-bold text-lg gradient-text">${Store.data.settings?.shopName || 'صيانة الموبايل'}</h2>
+                <p class="text-xs text-slate-500">نظام المحاسبة المتكامل</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="p-3 grid grid-cols-2 gap-2 border-b border-slate-200 dark:border-slate-700">
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl p-3 text-center">
+              <p class="text-[10px] text-slate-500 mb-1">صافي الربح</p>
+              <p class="font-bold text-green-600 dark:text-green-400">${fmt(profit - expenses)} د.أ</p>
+            </div>
+            <div class="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/30 dark:to-rose-900/30 rounded-xl p-3 text-center">
+              <p class="text-[10px] text-slate-500 mb-1">الديون</p>
+              <p class="font-bold text-red-600 dark:text-red-400">${fmt(debts)} د.أ</p>
+            </div>
+          </div>
+          
+          <nav class="p-2 space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto">
+            ${nav.map(n => `
+              <button onclick="navigate('${n.id}')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${state.page === n.id ? 'bg-gradient-to-l from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/30' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}">
+                <i data-lucide="${n.icon}" class="w-5 h-5"></i>
+                <span class="font-medium">${n.label}</span>
+              </button>
+            `).join('')}
+          </nav>
+          
+          <div class="absolute bottom-0 inset-x-0 p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            <button onclick="openDialog('export')" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 text-white font-medium shadow-lg shadow-emerald-500/30 btn-press">
+              <i data-lucide="download" class="w-5 h-5"></i>
+              تصدير البيانات
+            </button>
+          </div>
+        </aside>
+      `;
+    }
+    
+    function renderSidebar() {
+      const nav = [
+        { id: 'dashboard', icon: 'layout-dashboard', label: 'لوحة التحكم' },
+        { id: 'repairs', icon: 'wrench', label: 'الصيانة' },
+        { id: 'customers', icon: 'users', label: 'العملاء' },
+        { id: 'inventory', icon: 'package', label: 'المخزون' },
+        { id: 'invoices', icon: 'file-text', label: 'الفواتير' },
+        { id: 'expenses', icon: 'receipt', label: 'المصاريف' },
+        { id: 'debts', icon: 'credit-card', label: 'الديون' },
+        { id: 'reports', icon: 'bar-chart-3', label: 'التقارير' },
+        { id: 'backup', icon: 'database', label: 'النسخ الاحتياطي' },
+        { id: 'settings', icon: 'settings', label: 'الإعدادات' }
+      ];
+      
+      return `
+        <aside class="hidden lg:flex flex-col fixed top-0 right-0 bottom-0 w-64 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 z-30">
+          <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+                <i data-lucide="smartphone" class="w-5 h-5 text-white"></i>
+              </div>
+              <div>
+                <h2 class="font-bold gradient-text">${Store.data.settings?.shopName || 'صيانة الموبايل'}</h2>
+                <p class="text-[10px] text-slate-500">نظام المحاسبة</p>
+              </div>
+            </div>
+          </div>
+          
+          <nav class="flex-1 p-2 space-y-1 overflow-y-auto">
+            ${nav.map(n => `
+              <button onclick="navigate('${n.id}')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${state.page === n.id ? 'bg-gradient-to-l from-violet-600 to-blue-600 text-white shadow-lg shadow-violet-500/30' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}">
+                <i data-lucide="${n.icon}" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">${n.label}</span>
+              </button>
+            `).join('')}
+          </nav>
+          
+          <div class="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
+            <button onclick="openDialog('export')" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 text-white text-sm font-medium shadow-md btn-press">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              تصدير
+            </button>
+            <button onclick="toggleTheme()" class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+              <i data-lucide="${state.theme === 'dark' ? 'sun' : 'moon'}" class="w-4 h-4"></i>
+              ${state.theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}
+            </button>
+          </div>
+        </aside>
+      `;
+    }
+    
+    function renderMain() {
+      const pages = {
+        dashboard: renderDashboard,
+        customers: renderCustomers,
+        repairs: renderRepairs,
+        inventory: renderInventory,
+        invoices: renderInvoices,
+        expenses: renderExpenses,
+        debts: renderDebts,
+        reports: renderReports,
+        backup: renderBackup,
+        settings: renderSettings
+      };
+      return `<main class="lg:mr-64 pt-16 lg:pt-0 min-h-screen"><div class="p-4 lg:p-6 max-w-7xl mx-auto">${(pages[state.page] || pages.dashboard)()}</div></main>`;
+    }
+    
+    // ==================== الصفحات ====================
+    function renderDashboard() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.reduce((s, r) => s + ((r.finalCost||0) - (r.maintenanceCost||0)), 0);
+      const expenses = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      const debts = delivered.reduce((s, r) => s + (r.debt||0), 0);
+      const pending = Store.data.repairs.filter(r => ['PENDING','DIAGNOSING','IN_PROGRESS','WAITING_PARTS'].includes(r.status)).length;
+      const completed = Store.data.repairs.filter(r => r.status === 'COMPLETED').length;
+      const lowStock = Store.data.inventory.filter(i => i.quantity <= i.minQuantity).length;
+      
+      return `
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold mb-1">مرحباً بك 👋</h1>
+          <p class="text-slate-500 text-sm">إليك ملخص سريع لعملك اليوم</p>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card-hover bg-gradient-to-br from-white to-green-50 dark:from-slate-800 dark:to-green-900/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-5 h-5 text-green-600"></i>
+              </div>
+              <span class="text-xs text-slate-500">أرباح الصيانة</span>
+            </div>
+            <p class="text-2xl font-bold text-green-600">${fmt(profit)} د.أ</p>
+          </div>
+          
+          <div class="card-hover bg-gradient-to-br from-white to-blue-50 dark:from-slate-800 dark:to-blue-900/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <i data-lucide="wallet" class="w-5 h-5 text-blue-600"></i>
+              </div>
+              <span class="text-xs text-slate-500">صافي الربح</span>
+            </div>
+            <p class="text-2xl font-bold ${profit - expenses >= 0 ? 'text-blue-600' : 'text-red-600'}">${fmt(profit - expenses)} د.أ</p>
+          </div>
+          
+          <div class="card-hover bg-gradient-to-br from-white to-red-50 dark:from-slate-800 dark:to-red-900/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                <i data-lucide="credit-card" class="w-5 h-5 text-red-600"></i>
+              </div>
+              <span class="text-xs text-slate-500">ديون العملاء</span>
+            </div>
+            <p class="text-2xl font-bold text-red-600">${fmt(debts)} د.أ</p>
+          </div>
+          
+          <div class="card-hover bg-gradient-to-br from-white to-violet-50 dark:from-slate-800 dark:to-violet-900/20 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                <i data-lucide="clock" class="w-5 h-5 text-violet-600"></i>
+              </div>
+              <span class="text-xs text-slate-500">قيد الانتظار</span>
+            </div>
+            <p class="text-2xl font-bold text-violet-600">${pending}</p>
+          </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 mb-6">
+          <h3 class="font-semibold mb-3 flex items-center gap-2">
+            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+            إجراءات سريعة
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="openDialog('repair')" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white text-sm font-medium shadow-lg shadow-violet-500/20 btn-press">
+              <i data-lucide="plus" class="w-4 h-4"></i> طلب صيانة جديد
+            </button>
+            <button onclick="openDialog('customer')" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors btn-press">
+              <i data-lucide="user-plus" class="w-4 h-4"></i> عميل جديد
+            </button>
+            <button onclick="openDialog('expense')" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors btn-press">
+              <i data-lucide="receipt" class="w-4 h-4"></i> مصروف جديد
+            </button>
+            <button onclick="navigate('inventory')" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors btn-press">
+              <i data-lucide="package" class="w-4 h-4"></i> المخزون
+            </button>
+          </div>
+        </div>
+        
+        <!-- Alerts -->
+        ${lowStock > 0 ? `
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-amber-800 dark:text-amber-200">تنبيه المخزون</p>
+              <p class="text-sm text-amber-600 dark:text-amber-400">يوجد <strong>${lowStock}</strong> صنف بكمية منخفضة تحتاج لإعادة طلب</p>
+            </div>
+          </div>
+        ` : ''}
+        
+        ${completed > 0 ? `
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <i data-lucide="check-circle" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-green-800 dark:text-green-200">جاهز للتسليم</p>
+              <p class="text-sm text-green-600 dark:text-green-400">يوجد <strong>${completed}</strong> جهاز تم إصلاحه بانتظار التسليم</p>
+            </div>
+          </div>
+        ` : ''}
+        
+        <!-- Recent Repairs -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="font-semibold flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
+              آخر طلبات الصيانة
+            </h3>
+            <button onclick="navigate('repairs')" class="text-sm text-violet-600 hover:text-violet-700 font-medium">عرض الكل</button>
+          </div>
+          
+          <div class="divide-y divide-slate-100 dark:divide-slate-700">
+            ${Store.data.repairs.slice(-5).reverse().map(r => {
+              const st = getStatus(r.status);
+              return `
+                <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl ${st.c} flex items-center justify-center flex-shrink-0">
+                      <i data-lucide="${st.icon}" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="font-medium truncate">${getCust(r.customerId)}</p>
+                      <p class="text-sm text-slate-500 truncate">${r.deviceModel}</p>
+                    </div>
+                  </div>
+                  <div class="text-left flex-shrink-0">
+                    <span class="inline-block px-2.5 py-1 rounded-full text-xs font-medium ${st.c} text-white">${st.l}</span>
+                    <p class="text-sm font-semibold mt-1">${fmt(r.finalCost||0)} د.أ</p>
+                  </div>
+                </div>
+              `;
+            }).join('') || '<div class="p-8 text-center text-slate-400"><i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>لا توجد طلبات صيانة</p></div>'}
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderCustomers() {
+      const customers = Store.data.customers;
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">العملاء</h1>
+            <p class="text-slate-500 text-sm">${customers.length} عميل مسجل</p>
+          </div>
+          <button onclick="openDialog('customer')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium shadow-lg shadow-violet-500/20 btn-press">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> إضافة عميل
+          </button>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-slate-50 dark:bg-slate-700/50">
+                <tr>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">العميل</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">الهاتف</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase hidden sm:table-cell">العنوان</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase hidden md:table-cell">إجمالي المشتريات</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                ${customers.map(c => `
+                  <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                          ${c.name.charAt(0)}
+                        </div>
+                        <span class="font-medium">${c.name}</span>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 dir-ltr">${c.phone}</td>
+                    <td class="px-4 py-3 text-slate-500 hidden sm:table-cell">${c.address || '-'}</td>
+                    <td class="px-4 py-3 font-semibold hidden md:table-cell">${fmt(c.totalSpent||0)} د.أ</td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center justify-center gap-1">
+                        <button onclick="openDialog('customer','${c.id}')" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" title="تعديل">
+                          <i data-lucide="edit-2" class="w-4 h-4 text-blue-600"></i>
+                        </button>
+                        <button onclick="confirmDelete('customers','${c.id}')" class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="حذف">
+                          <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">لا يوجد عملاء</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderRepairs() {
+      const repairs = Store.data.repairs;
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">طلبات الصيانة</h1>
+            <p class="text-slate-500 text-sm">${repairs.length} طلب</p>
+          </div>
+          <button onclick="openDialog('repair')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium shadow-lg shadow-violet-500/20 btn-press">
+            <i data-lucide="plus" class="w-4 h-4"></i> طلب جديد
+          </button>
+        </div>
+        
+        <!-- Status Filter Tabs -->
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <button onclick="filterRepairs('')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium whitespace-nowrap">الكل</button>
+          ${STATUS.slice(0,5).map(s => `
+            <button onclick="filterRepairs('${s.v}')" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm font-medium whitespace-nowrap">${s.l}</button>
+          `).join('')}
+        </div>
+        
+        <div class="space-y-3">
+          ${repairs.map(r => {
+            const st = getStatus(r.status);
+            return `
+              <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 card-hover">
+                <div class="flex items-start justify-between gap-4 mb-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl ${st.c} flex items-center justify-center shadow-lg">
+                      <i data-lucide="${st.icon}" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                      <h3 class="font-semibold">${getCust(r.customerId)}</h3>
+                      <p class="text-sm text-slate-500">${r.deviceType} - ${r.deviceModel}</p>
+                    </div>
+                  </div>
+                  <span class="px-3 py-1 rounded-full text-xs font-medium ${st.c} text-white">${st.l}</span>
+                </div>
+                
+                <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 mb-3">
+                  <p class="text-sm"><span class="text-slate-500">المشكلة:</span> ${r.problem}</p>
+                  ${r.notes ? `<p class="text-sm mt-1"><span class="text-slate-500">ملاحظات:</span> ${r.notes}</p>` : ''}
+                </div>
+                
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4 text-sm">
+                    <span><span class="text-slate-500">التكلفة:</span> <strong>${fmt(r.finalCost||0)} د.أ</strong></span>
+                    ${r.deposit ? `<span class="text-green-600">عربون: ${fmt(r.deposit)} د.أ</span>` : ''}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    ${r.status === 'COMPLETED' ? `<button onclick="openDialog('delivery','${r.id}')" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium btn-press">تسليم</button>` : ''}
+                    <button onclick="openDialog('repair','${r.id}')" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                      <i data-lucide="edit-2" class="w-4 h-4 text-blue-600"></i>
+                    </button>
+                    <button onclick="confirmDelete('repairs','${r.id}')" class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                      <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('') || '<div class="p-8 text-center text-slate-400"><i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>لا توجد طلبات صيانة</p></div>'}
+        </div>
+      `;
+    }
+    
+    function renderInventory() {
+      const items = Store.data.inventory;
+      const lowStock = items.filter(i => i.quantity <= i.minQuantity);
+      
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">المخزون</h1>
+            <p class="text-slate-500 text-sm">${items.length} صنف</p>
+          </div>
+          <button onclick="openDialog('inventory')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium shadow-lg shadow-violet-500/20 btn-press">
+            <i data-lucide="plus" class="w-4 h-4"></i> إضافة صنف
+          </button>
+        </div>
+        
+        ${lowStock.length > 0 ? `
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-white"></i>
+            </div>
+            <div class="flex-1">
+              <p class="font-semibold text-amber-800 dark:text-amber-200">${lowStock.length} صنف بكمية منخفضة</p>
+              <p class="text-sm text-amber-600 dark:text-amber-400">${lowStock.map(i => i.name).join('، ')}</p>
+            </div>
+          </div>
+        ` : ''}
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${items.map(i => {
+            const isLow = i.quantity <= i.minQuantity;
+            const profit = i.sellingPrice - i.costPrice;
+            return `
+              <div class="bg-white dark:bg-slate-800 rounded-2xl border ${isLow ? 'border-red-200 dark:border-red-800' : 'border-slate-100 dark:border-slate-700'} p-4 card-hover ${isLow ? 'ring-2 ring-red-100 dark:ring-red-900' : ''}">
+                <div class="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 class="font-semibold">${i.name}</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700">${i.category}</span>
+                  </div>
+                  <div class="text-center">
+                    <span class="text-2xl font-bold ${isLow ? 'text-red-600' : ''}">${i.quantity}</span>
+                    <p class="text-[10px] text-slate-500">من ${i.minQuantity}</p>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+                  <div class="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
+                    <p class="text-[10px] text-slate-500">سعر الشراء</p>
+                    <p class="font-semibold">${fmt(i.costPrice)} د.أ</p>
+                  </div>
+                  <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
+                    <p class="text-[10px] text-slate-500">سعر البيع</p>
+                    <p class="font-semibold text-green-600">${fmt(i.sellingPrice)} د.أ</p>
+                  </div>
+                </div>
+                
+                <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <span class="text-sm text-green-600 font-medium">ربح: ${fmt(profit)} د.أ</span>
+                  <div class="flex items-center gap-1">
+                    <button onclick="openDialog('inventory','${i.id}')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                      <i data-lucide="edit-2" class="w-4 h-4 text-blue-600"></i>
+                    </button>
+                    <button onclick="confirmDelete('inventory','${i.id}')" class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30">
+                      <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('') || '<div class="col-span-full p-8 text-center text-slate-400"><i data-lucide="package" class="w-12 h-12 mx-auto mb-2 opacity-50"></i><p>لا يوجد مخزون</p></div>'}
+        </div>
+      `;
+    }
+    
+    function renderInvoices() {
+      const invoices = Store.data.invoices;
+      return `
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">الفواتير</h1>
+            <p class="text-slate-500 text-sm">${invoices.length} فاتورة</p>
+          </div>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-slate-50 dark:bg-slate-700/50">
+                <tr>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">رقم الفاتورة</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">العميل</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">المجموع</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">الحالة</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">التاريخ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                ${invoices.map(inv => `
+                  <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    <td class="px-4 py-3 font-medium">${inv.invoiceNumber}</td>
+                    <td class="px-4 py-3">${getCust(inv.customerId)}</td>
+                    <td class="px-4 py-3 font-semibold">${fmt(inv.total)} د.أ</td>
+                    <td class="px-4 py-3">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-medium ${inv.status === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}">${inv.status === 'PAID' ? 'مدفوعة' : 'معلقة'}</span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-500">${fdate(inv.date)}</td>
+                  </tr>
+                `).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">لا توجد فواتير</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderExpenses() {
+      const expenses = Store.data.expenses;
+      const total = expenses.reduce((s, e) => s + e.amount, 0);
+      
+      return `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">المصاريف</h1>
+            <p class="text-slate-500 text-sm">إجمالي: ${fmt(total)} د.أ</p>
+          </div>
+          <button onclick="openDialog('expense')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-red-600 to-rose-600 text-white font-medium shadow-lg shadow-red-500/20 btn-press">
+            <i data-lucide="plus" class="w-4 h-4"></i> مصروف جديد
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          ${EXPENSE_CATS.slice(0,4).map(cat => {
+            const catTotal = expenses.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0);
+            return `
+              <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-4">
+                <p class="text-sm text-slate-500 mb-1">${cat}</p>
+                <p class="text-xl font-bold text-red-600">${fmt(catTotal)} د.أ</p>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-slate-50 dark:bg-slate-700/50">
+                <tr>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">الفئة</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">الوصف</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">المبلغ</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-slate-500">التاريخ</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-slate-500">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                ${expenses.map(e => `
+                  <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs">${e.category}</span></td>
+                    <td class="px-4 py-3">${e.description}</td>
+                    <td class="px-4 py-3 font-semibold text-red-600">${fmt(e.amount)} د.أ</td>
+                    <td class="px-4 py-3 text-slate-500">${fdate(e.date)}</td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center justify-center gap-1">
+                        <button onclick="openDialog('expense','${e.id}')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                          <i data-lucide="edit-2" class="w-4 h-4 text-blue-600"></i>
+                        </button>
+                        <button onclick="confirmDelete('expenses','${e.id}')" class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30">
+                          <i data-lucide="trash-2" class="w-4 h-4 text-red-600"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">لا توجد مصاريف</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderDebts() {
+      const debts = Store.data.repairs.filter(r => r.status === 'DELIVERED' && r.debt > 0);
+      const total = debts.reduce((s, r) => s + r.debt, 0);
+      
+      return `
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold">الديون</h1>
+          <p class="text-slate-500 text-sm">إجمالي الديون: ${fmt(total)} د.أ</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-6 mb-6 text-white">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
+              <i data-lucide="credit-card" class="w-8 h-8"></i>
+            </div>
+            <div>
+              <p class="text-white/70 text-sm">إجمالي الديون المتراكبة</p>
+              <p class="text-4xl font-bold">${fmt(total)} د.أ</p>
+              <p class="text-white/70 text-sm">${debts.length} عميل مدين</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="space-y-3">
+          ${debts.length > 0 ? debts.map(d => `
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <i data-lucide="user" class="w-6 h-6 text-red-600"></i>
+                </div>
+                <div>
+                  <p class="font-semibold">${getCust(d.customerId)}</p>
+                  <p class="text-sm text-slate-500">${d.deviceModel}</p>
+                </div>
+              </div>
+              <div class="text-left">
+                <p class="text-xl font-bold text-red-600">${fmt(d.debt)} د.أ</p>
+                <button onclick="payDebt('${d.id}')" class="text-sm text-green-600 font-medium hover:text-green-700">تسديد</button>
+              </div>
+            </div>
+          `).join('') : `
+            <div class="bg-green-50 dark:bg-green-900/20 rounded-2xl p-8 text-center">
+              <div class="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="check" class="w-8 h-8 text-white"></i>
+              </div>
+              <p class="text-green-700 dark:text-green-400 font-semibold text-lg">ممتاز! لا توجد ديون</p>
+              <p class="text-green-600 dark:text-green-500 text-sm">جميع العملاء مسددين</p>
+            </div>
+          `}
+        </div>
+      `;
+    }
+    
+    function renderReports() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.reduce((s, r) => s + ((r.finalCost||0) - (r.maintenanceCost||0)), 0);
+      const expenses = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      const debts = delivered.reduce((s, r) => s + (r.debt||0), 0);
+      const netProfit = profit - expenses;
+      
+      return `
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold">التقارير</h1>
+            <p class="text-slate-500 text-sm">تحليل شامل لأداء المحل</p>
+          </div>
+          <button onclick="openDialog('export')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-emerald-600 to-teal-600 text-white font-medium shadow-lg shadow-emerald-500/20 btn-press">
+            <i data-lucide="download" class="w-4 h-4"></i> تصدير
+          </button>
+        </div>
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="trending-up" class="w-5 h-5"></i><span class="text-sm opacity-80">أرباح الصيانة</span></div>
+            <p class="text-2xl font-bold">${fmt(profit)} د.أ</p>
+          </div>
+          <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="trending-down" class="w-5 h-5"></i><span class="text-sm opacity-80">المصاريف</span></div>
+            <p class="text-2xl font-bold">${fmt(expenses)} د.أ</p>
+          </div>
+          <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="wallet" class="w-5 h-5"></i><span class="text-sm opacity-80">صافي الربح</span></div>
+            <p class="text-2xl font-bold">${fmt(netProfit)} د.أ</p>
+          </div>
+          <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white">
+            <div class="flex items-center gap-2 mb-2"><i data-lucide="credit-card" class="w-5 h-5"></i><span class="text-sm opacity-80">الديون</span></div>
+            <p class="text-2xl font-bold">${fmt(debts)} د.أ</p>
+          </div>
+        </div>
+        
+        <!-- Calculation -->
+        <div class="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-700 rounded-2xl p-6 mb-6">
+          <h3 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="calculator" class="w-5 h-5"></i> طريقة حساب الأرباح</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border-2 border-green-200 dark:border-green-800">
+              <p class="text-sm text-slate-500 mb-1">+ أرباح الصيانة</p>
+              <p class="text-xl font-bold text-green-600">${fmt(profit)} د.أ</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border-2 border-red-200 dark:border-red-800">
+              <p class="text-sm text-slate-500 mb-1">- المصاريف</p>
+              <p class="text-xl font-bold text-red-600">${fmt(expenses)} د.أ</p>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
+              <p class="text-sm text-slate-500 mb-1">= صافي الربح</p>
+              <p class="text-xl font-bold text-blue-600">${fmt(netProfit)} د.أ</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+            <h3 class="font-semibold mb-4">حالات الصيانة</h3>
+            <div style="height:200px"><canvas id="statusChart"></canvas></div>
+            <div id="statusLegend" class="flex flex-wrap gap-2 justify-center mt-4"></div>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+            <h3 class="font-semibold mb-4">أنواع الأجهزة</h3>
+            <div style="height:200px"><canvas id="deviceChart"></canvas></div>
+            <div id="deviceLegend" class="flex flex-wrap gap-2 justify-center mt-4"></div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderBackup() {
+      return `
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold">النسخ الاحتياطي</h1>
+          <p class="text-slate-500 text-sm">حماية بياناتك من الضياع</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white">
+            <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-4">
+              <i data-lucide="download" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2">إنشاء نسخة احتياطية</h3>
+            <p class="text-white/70 text-sm mb-4">قم بتصدير جميع البيانات كملف JSON</p>
+            <button onclick="createBackup()" class="w-full py-2.5 rounded-xl bg-white text-blue-600 font-medium btn-press">إنشاء نسخة</button>
+          </div>
+          
+          <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white">
+            <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-4">
+              <i data-lucide="upload" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2">استرجاع نسخة</h3>
+            <p class="text-white/70 text-sm mb-4">اختر ملف نسخة احتياطية لاسترجاعه</p>
+            <input type="file" id="backupFile" accept=".json" class="hidden" onchange="restoreBackup(event)">
+            <button onclick="$('backupFile').click()" class="w-full py-2.5 rounded-xl bg-white text-emerald-600 font-medium btn-press">اختيار ملف</button>
+          </div>
+        </div>
+        
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+          <div class="flex items-center gap-3">
+            <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600"></i>
+            <div>
+              <p class="font-semibold text-red-800 dark:text-red-200">تحذير!</p>
+              <p class="text-sm text-red-600 dark:text-red-400">استرجاع النسخة سيحل محل جميع البيانات الحالية</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 mb-6">
+          <h3 class="font-semibold mb-3">📊 إحصائيات البيانات</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div><p class="text-2xl font-bold">${Store.data.customers.length}</p><p class="text-sm text-slate-500">عملاء</p></div>
+            <div><p class="text-2xl font-bold">${Store.data.repairs.length}</p><p class="text-sm text-slate-500">طلبات</p></div>
+            <div><p class="text-2xl font-bold">${Store.data.inventory.length}</p><p class="text-sm text-slate-500">مخزون</p></div>
+            <div><p class="text-2xl font-bold">${Store.data.expenses.length}</p><p class="text-sm text-slate-500">مصاريف</p></div>
+          </div>
+        </div>
+        
+        <button onclick="clearAllData()" class="w-full py-3 rounded-xl border-2 border-red-200 dark:border-red-800 text-red-600 font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+          <i data-lucide="trash-2" class="w-4 h-4 inline mr-2"></i>
+          مسح جميع البيانات
+        </button>
+      `;
+    }
+    
+    function renderSettings() {
+      return `
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold">الإعدادات</h1>
+          <p class="text-slate-500 text-sm">تخصيص التطبيق</p>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-6">
+          <h3 class="font-semibold mb-4">🏪 معلومات المحل</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm text-slate-500 mb-1">اسم المحل</label>
+              <input type="text" id="shopName" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${Store.data.settings?.shopName || ''}">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-500 mb-1">رقم الهاتف</label>
+              <input type="tel" id="shopPhone" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${Store.data.settings?.phone || ''}">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-500 mb-1">العنوان</label>
+              <input type="text" id="shopAddress" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${Store.data.settings?.address || ''}">
+            </div>
+            <button onclick="saveSettings()" class="w-full py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium btn-press">حفظ الإعدادات</button>
+          </div>
+        </div>
+      `;
+    }
+    
+    // ==================== النوافذ ====================
+    function renderDialog() {
+      if (!state.dialog) return '';
+      
+      let content = '';
+      
+      if (state.dialog === 'export') {
+        content = `
+          <div class="p-6">
+            <h2 class="text-xl font-bold mb-4">📤 تصدير البيانات</h2>
+            <div class="space-y-2">
+              <button onclick="exportExcel()" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <i data-lucide="file-spreadsheet" class="w-5 h-5 text-green-600"></i>
+                </div>
+                <div class="text-right"><p class="font-medium">Excel / CSV</p><p class="text-xs text-slate-500">تصدير كجدول بيانات</p></div>
+              </button>
+              <button onclick="exportJSON()" class="w-full flex items-center gap-3 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <i data-lucide="file-code" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <div class="text-right"><p class="font-medium">JSON</p><p class="text-xs text-slate-500">نسخة احتياطية كاملة</p></div>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      
+      if (state.dialog === 'customer') {
+        const c = state.dialogData || {};
+        content = `
+          <form onsubmit="saveCustomer(event)" class="p-6">
+            <h2 class="text-xl font-bold mb-4">${c.id ? '✏️ تعديل عميل' : '➕ عميل جديد'}</h2>
+            <input type="hidden" id="customerId" value="${c.id || ''}">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">الاسم *</label>
+                <input type="text" id="customerName" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${c.name || ''}" required>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">رقم الهاتف *</label>
+                <input type="tel" id="customerPhone" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${c.phone || ''}" required dir="ltr">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">العنوان</label>
+                <input type="text" id="customerAddress" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${c.address || ''}">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">ملاحظات</label>
+                <textarea id="customerNotes" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent resize-none" rows="2">${c.notes || ''}</textarea>
+              </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+              <button type="button" onclick="closeDialog()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium">إلغاء</button>
+              <button type="submit" class="flex-1 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium btn-press">حفظ</button>
+            </div>
+          </form>
+        `;
+      }
+      
+      if (state.dialog === 'repair') {
+        const r = state.dialogData || {};
+        content = `
+          <form onsubmit="saveRepair(event)" class="p-6 max-h-[80vh] overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4">${r.id ? '✏️ تعديل طلب' : '➕ طلب صيانة جديد'}</h2>
+            <input type="hidden" id="repairId" value="${r.id || ''}">
+            <div class="space-y-4">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">العميل *</label>
+                  <select id="repairCustomer" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" required>
+                    <option value="">اختر</option>
+                    ${Store.data.customers.map(c => `<option value="${c.id}" ${r.customerId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">نوع الجهاز *</label>
+                  <select id="repairDeviceType" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" required>
+                    <option value="">اختر</option>
+                    ${DEVICES.map(d => `<option value="${d}" ${r.deviceType === d ? 'selected' : ''}>${d}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">الموديل *</label>
+                  <input type="text" id="repairDeviceModel" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${r.deviceModel || ''}" required>
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">الحالة</label>
+                  <select id="repairStatus" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent">
+                    ${STATUS.map(s => `<option value="${s.v}" ${r.status === s.v ? 'selected' : ''}>${s.l}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">المشكلة *</label>
+                <textarea id="repairProblem" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent resize-none" rows="2" required>${r.problem || ''}</textarea>
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">العربون</label>
+                  <input type="number" id="repairDeposit" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${r.deposit || 0}" min="0">
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">التكلفة</label>
+                  <input type="number" id="repairMaintenanceCost" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${r.maintenanceCost || ''}" min="0">
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">السعر</label>
+                  <input type="number" id="repairFinalCost" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${r.finalCost || ''}" min="0">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">ملاحظات</label>
+                <textarea id="repairNotes" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent resize-none" rows="2">${r.notes || ''}</textarea>
+              </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+              <button type="button" onclick="closeDialog()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium">إلغاء</button>
+              <button type="submit" class="flex-1 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium btn-press">حفظ</button>
+            </div>
+          </form>
+        `;
+      }
+      
+      if (state.dialog === 'inventory') {
+        const i = state.dialogData || {};
+        content = `
+          <form onsubmit="saveInventory(event)" class="p-6">
+            <h2 class="text-xl font-bold mb-4">${i.id ? '✏️ تعديل صنف' : '➕ إضافة صنف'}</h2>
+            <input type="hidden" id="inventoryId" value="${i.id || ''}">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">اسم الصنف *</label>
+                <input type="text" id="inventoryName" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${i.name || ''}" required>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">الفئة *</label>
+                <select id="inventoryCategory" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" required>
+                  <option value="">اختر</option>
+                  ${INVENTORY_CATS.map(c => `<option value="${c}" ${i.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">الكمية</label>
+                  <input type="number" id="inventoryQuantity" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${i.quantity || 0}" min="0">
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">الحد الأدنى</label>
+                  <input type="number" id="inventoryMinQuantity" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${i.minQuantity || 5}" min="0">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">سعر الشراء</label>
+                  <input type="number" id="inventoryCostPrice" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${i.costPrice || 0}" min="0">
+                </div>
+                <div>
+                  <label class="block text-sm text-slate-500 mb-1">سعر البيع</label>
+                  <input type="number" id="inventorySellingPrice" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${i.sellingPrice || 0}" min="0">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">المورد</label>
+                <input type="text" id="inventorySupplier" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${i.supplier || ''}">
+              </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+              <button type="button" onclick="closeDialog()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium">إلغاء</button>
+              <button type="submit" class="flex-1 py-2.5 rounded-xl bg-gradient-to-l from-violet-600 to-blue-600 text-white font-medium btn-press">حفظ</button>
+            </div>
+          </form>
+        `;
+      }
+      
+      if (state.dialog === 'expense') {
+        const e = state.dialogData || {};
+        content = `
+          <form onsubmit="saveExpense(event)" class="p-6">
+            <h2 class="text-xl font-bold mb-4">${e.id ? '✏️ تعديل مصروف' : '➕ مصروف جديد'}</h2>
+            <input type="hidden" id="expenseId" value="${e.id || ''}">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">الفئة *</label>
+                <select id="expenseCategory" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" required>
+                  <option value="">اختر</option>
+                  ${EXPENSE_CATS.map(c => `<option value="${c}" ${e.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">الوصف *</label>
+                <input type="text" id="expenseDescription" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${e.description || ''}" required>
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">المبلغ (د.أ) *</label>
+                <input type="number" id="expenseAmount" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${e.amount || ''}" required min="0">
+              </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+              <button type="button" onclick="closeDialog()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium">إلغاء</button>
+              <button type="submit" class="flex-1 py-2.5 rounded-xl bg-gradient-to-l from-red-600 to-rose-600 text-white font-medium btn-press">حفظ</button>
+            </div>
+          </form>
+        `;
+      }
+      
+      if (state.dialog === 'delivery') {
+        const r = state.dialogData;
+        const remaining = (r.finalCost || 0) - (r.deposit || 0);
+        content = `
+          <form onsubmit="confirmDelivery(event)" class="p-6">
+            <h2 class="text-xl font-bold mb-4">📦 تأكيد التسليم</h2>
+            <div class="bg-slate-50 dark:bg-slate-700 rounded-xl p-4 mb-4">
+              <div class="space-y-2">
+                <div class="flex justify-between"><span class="text-slate-500">العميل:</span><span class="font-medium">${getCust(r.customerId)}</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">الجهاز:</span><span>${r.deviceModel}</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">السعر:</span><span class="font-bold text-blue-600">${fmt(r.finalCost||0)} د.أ</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">العربون:</span><span class="text-green-600">${fmt(r.deposit||0)} د.أ</span></div>
+              </div>
+            </div>
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4 text-center">
+              <p class="text-sm text-amber-600">المتبقي</p>
+              <p class="text-2xl font-bold text-amber-700">${fmt(remaining)} د.أ</p>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">المبلغ المدفوع</label>
+                <input type="number" id="deliveryPaidAmount" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="${remaining}">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-500 mb-1">الدين (إن وجد)</label>
+                <input type="number" id="deliveryDebt" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent" value="0">
+              </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+              <button type="button" onclick="closeDialog()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium">إلغاء</button>
+              <button type="submit" class="flex-1 py-2.5 rounded-xl bg-gradient-to-l from-green-600 to-emerald-600 text-white font-medium btn-press">✓ تأكيد التسليم</button>
+            </div>
+          </form>
+        `;
+      }
+      
+      if (state.dialog === 'confirm') {
+        content = `
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+              <i data-lucide="trash-2" class="w-8 h-8 text-red-600"></i>
+            </div>
+            <h2 class="text-xl font-bold mb-2">تأكيد الحذف</h2>
+            <p class="text-slate-500 mb-6">${state.deleteInfo?.message || 'هل أنت متأكد؟'}</p>
+            <div class="flex gap-2">
+              <button onclick="closeDialog()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-medium">إلغاء</button>
+              <button onclick="executeDelete()" class="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-medium btn-press">حذف</button>
+            </div>
+          </div>
+        `;
+      }
+      
+      return `
+        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in" onclick="closeDialog()">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in shadow-2xl" onclick="event.stopPropagation()">
+            ${content}
+          </div>
+        </div>
+      `;
+    }
+    
+    // ==================== الإجراءات ====================
+    function navigate(page) { state.page = page; state.drawer = false; render(); }
+    function toggleDrawer() { state.drawer = !state.drawer; render(); }
+    function toggleTheme() { state.theme = state.theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', state.theme); render(); }
+    
+    function openDialog(type, id) {
+      state.dialog = type;
+      if (type === 'customer') state.dialogData = id ? Store.get('customers', id) : null;
+      else if (type === 'repair') state.dialogData = id ? Store.get('repairs', id) : null;
+      else if (type === 'inventory') state.dialogData = id ? Store.get('inventory', id) : null;
+      else if (type === 'expense') state.dialogData = id ? Store.get('expenses', id) : null;
+      else if (type === 'delivery') state.dialogData = id ? Store.get('repairs', id) : null;
+      else state.dialogData = null;
+      render();
+    }
+    
+    function closeDialog() { state.dialog = null; state.dialogData = null; state.deleteInfo = null; render(); }
+    
+    function saveCustomer(e) {
+      e.preventDefault();
+      const id = $('customerId').value;
+      const data = {
+        name: $('customerName').value.trim(),
+        phone: $('customerPhone').value.trim(),
+        address: $('customerAddress').value.trim(),
+        notes: $('customerNotes').value.trim()
+      };
+      if (id) Store.update('customers', id, data); else Store.add('customers', data);
+      toast(id ? 'تم تحديث العميل' : 'تم إضافة العميل');
+      closeDialog();
+    }
+    
+    function saveRepair(e) {
+      e.preventDefault();
+      const id = $('repairId').value;
+      const data = {
+        customerId: $('repairCustomer').value,
+        deviceType: $('repairDeviceType').value,
+        deviceModel: $('repairDeviceModel').value.trim(),
+        problem: $('repairProblem').value.trim(),
+        status: $('repairStatus').value,
+        deposit: parseFloat($('repairDeposit').value) || 0,
+        maintenanceCost: parseFloat($('repairMaintenanceCost').value) || null,
+        finalCost: parseFloat($('repairFinalCost').value) || null,
+        notes: $('repairNotes').value.trim()
+      };
+      if (id) Store.update('repairs', id, data); else Store.add('repairs', data);
+      toast(id ? 'تم تحديث الطلب' : 'تم إضافة الطلب');
+      closeDialog();
+    }
+    
+    function saveInventory(e) {
+      e.preventDefault();
+      const id = $('inventoryId').value;
+      const data = {
+        name: $('inventoryName').value.trim(),
+        category: $('inventoryCategory').value,
+        quantity: parseInt($('inventoryQuantity').value) || 0,
+        minQuantity: parseInt($('inventoryMinQuantity').value) || 5,
+        costPrice: parseFloat($('inventoryCostPrice').value) || 0,
+        sellingPrice: parseFloat($('inventorySellingPrice').value) || 0,
+        supplier: $('inventorySupplier').value.trim()
+      };
+      if (id) Store.update('inventory', id, data); else Store.add('inventory', data);
+      toast(id ? 'تم تحديث الصنف' : 'تم إضافة الصنف');
+      closeDialog();
+    }
+    
+    function saveExpense(e) {
+      e.preventDefault();
+      const id = $('expenseId').value;
+      const data = {
+        category: $('expenseCategory').value,
+        description: $('expenseDescription').value.trim(),
+        amount: parseFloat($('expenseAmount').value) || 0,
+        date: new Date().toISOString()
+      };
+      if (id) Store.update('expenses', id, data); else Store.add('expenses', data);
+      toast(id ? 'تم تحديث المصروف' : 'تم إضافة المصروف');
+      closeDialog();
+    }
+    
+    function confirmDelivery(e) {
+      e.preventDefault();
+      const paid = parseFloat($('deliveryPaidAmount').value) || 0;
+      const debt = parseFloat($('deliveryDebt').value) || 0;
+      Store.update('repairs', state.dialogData.id, { status: 'DELIVERED', paidAmount: paid, debt: debt, deliveredAt: new Date().toISOString() });
+      toast('تم تأكيد التسليم');
+      closeDialog();
+    }
+    
+    function confirmDelete(collection, id) {
+      let name = '';
+      if (collection === 'customers') name = Store.get('customers', id)?.name;
+      else if (collection === 'repairs') name = 'هذا الطلب';
+      else if (collection === 'inventory') name = Store.get('inventory', id)?.name;
+      else if (collection === 'expenses') name = 'هذا المصروف';
+      state.deleteInfo = { collection, id, message: `هل أنت متأكد من حذف "${name}"؟` };
+      state.dialog = 'confirm';
+      render();
+    }
+    
+    function executeDelete() {
+      if (state.deleteInfo) Store.delete(state.deleteInfo.collection, state.deleteInfo.id);
+      toast('تم الحذف');
+      closeDialog();
+    }
+    
+    function payDebt(id) {
+      const r = Store.get('repairs', id);
+      if (r && r.debt > 0) {
+        Store.update('repairs', id, { paidAmount: (r.paidAmount || 0) + r.debt, debt: 0 });
+        toast('تم تسديد الدين');
+        render();
+      }
+    }
+    
+    function saveSettings() {
+      Store.data.settings = {
+        shopName: $('shopName').value,
+        phone: $('shopPhone').value,
+        address: $('shopAddress').value
+      };
+      Store.save();
+      toast('تم حفظ الإعدادات');
+    }
+    
+    // ==================== النسخ الاحتياطي ====================
+    function createBackup() {
+      const data = { version: '2.0', date: new Date().toISOString(), data: Store.data };
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      a.download = 'backup_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      toast('تم إنشاء النسخة الاحتياطية');
+    }
+    
+    function restoreBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.data && confirm('سيتم استبدال جميع البيانات. متأكد؟')) {
+            Store.data = data.data;
+            Store.save();
+            render();
+            toast('تم استرجاع النسخة');
+          }
+        } catch(err) { toast('ملف غير صالح', 'error'); }
+      };
+      reader.readAsText(file);
+    }
+    
+    function clearAllData() {
+      if (confirm('هل أنت متأكد من مسح جميع البيانات؟') && confirm('تأكيد نهائي - لا يمكن التراجع!')) {
+        localStorage.removeItem('mobileRepairApp_v2');
+        Store.data = { customers: [], repairs: [], inventory: [], invoices: [], expenses: [] };
+        render();
+        toast('تم مسح جميع البيانات');
+      }
+    }
+    
+    function exportExcel() {
+      let csv = '\ufeffالعملاء\n#,الاسم,الهاتف,العنوان,ملاحظات\n';
+      Store.data.customers.forEach((c, i) => csv += `${i+1},"${c.name}","${c.phone}","${c.address||''}","${c.notes||''}"\n`);
+      csv += '\nطلبات الصيانة\n#,العميل,الجهاز,المشكلة,الحالة,التكلفة,السعر\n';
+      Store.data.repairs.forEach((r, i) => csv += `${i+1},"${getCust(r.customerId)}","${r.deviceModel}","${r.problem}","${getStatus(r.status).l}",${r.maintenanceCost||0},${r.finalCost||0}\n`);
+      csv += '\nالمخزون\n#,الاسم,الفئة,الكمية,سعر الشراء,سعر البيع\n';
+      Store.data.inventory.forEach((i, n) => csv += `${n+1},"${i.name}","${i.category}",${i.quantity},${i.costPrice},${i.sellingPrice}\n`);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = 'report_' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+      toast('تم التصدير');
+      closeDialog();
+    }
+    
+    function exportJSON() {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify({ date: new Date().toISOString(), ...Store.data }, null, 2)], { type: 'application/json' }));
+      a.download = 'data_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      toast('تم التصدير');
+      closeDialog();
+    }
+    
+    // ==================== الرسوم البيانية ====================
+    function initCharts() {
+      if (state.page !== 'reports') return;
+      
+      // Status Chart
+      const statusCanvas = $('statusChart');
+      if (statusCanvas && window.Chart) {
+        const counts = {};
+        Store.data.repairs.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+        const data = STATUS.filter(s => counts[s.v] > 0).map(s => ({ l: s.l, v: counts[s.v], c: s.c.replace('bg-', '') }));
+        new Chart(statusCanvas, {
+          type: 'doughnut',
+          data: { labels: data.map(d => d.l), datasets: [{ data: data.map(d => d.v), backgroundColor: ['#f59e0b', '#3b82f6', '#f97316', '#8b5cf6', '#22c55e', '#14b8a6', '#ef4444'] }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        $('statusLegend').innerHTML = data.map((d, i) => `<span class="px-2 py-1 rounded-full text-xs" style="background:${['#f59e0b','#3b82f6','#f97316','#8b5cf6','#22c55e','#14b8a6','#ef4444'][i]}20;color:${['#f59e0b','#3b82f6','#f97316','#8b5cf6','#22c55e','#14b8a6','#ef4444'][i]}">${d.l}: ${d.v}</span>`).join('');
+      }
+      
+      // Device Chart
+      const deviceCanvas = $('deviceChart');
+      if (deviceCanvas && window.Chart) {
+        const counts = {};
+        Store.data.repairs.forEach(r => counts[r.deviceType] = (counts[r.deviceType] || 0) + 1);
+        const data = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+        new Chart(deviceCanvas, {
+          type: 'doughnut',
+          data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: colors }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        $('deviceLegend').innerHTML = data.map((d, i) => `<span class="px-2 py-1 rounded-full text-xs" style="background:${colors[i]}20;color:${colors[i]}">${d[0]}: ${d[1]}</span>`).join('');
+      }
+    }
+    
+    // ==================== تهيئة ====================
+    render();
+    setTimeout(() => { if (state.page === 'reports') initCharts(); }, 100);
+    
+    // Re-init charts when navigating to reports
+    const originalNavigate = navigate;
+    navigate = function(page) {
+      originalNavigate(page);
+      if (page === 'reports') setTimeout(initCharts, 200);
+    };
+  </script>
+</body>
+</html>
