@@ -43,12 +43,8 @@ import { Plus, Search, Edit, Trash2, Eye, Wrench, TrendingUp, CreditCard, Bankno
 import { useAppStore, Repair, Inventory } from '@/store';
 
 const statusOptions = [
-  { value: 'PENDING', label: 'قيد الانتظار', color: 'bg-yellow-500' },
-  { value: 'DIAGNOSING', label: 'قيد التشخيص', color: 'bg-blue-500' },
-  { value: 'WAITING_PARTS', label: 'في انتظار القطع', color: 'bg-orange-500' },
   { value: 'IN_PROGRESS', label: 'قيد الإصلاح', color: 'bg-purple-500' },
-  { value: 'COMPLETED', label: 'تم الإصلاح', color: 'bg-green-500' },
-  { value: 'DELIVERED', label: 'تم التسليم', color: 'bg-teal-500' },
+  { value: 'DELIVERED', label: 'تم الإصلاح والتسليم', color: 'bg-green-500' },
   { value: 'CANCELLED', label: 'ملغي', color: 'bg-red-500' },
 ];
 
@@ -244,7 +240,7 @@ export function RepairsPage() {
     deviceModel: '',
     entryDate: new Date().toISOString().split('T')[0],
     problem: '',
-    status: 'PENDING',
+    status: 'IN_PROGRESS',
     costPrice: '',  // سعر الشراء
     sellingPrice: '',  // سعر البيع
     deposit: '',
@@ -447,7 +443,7 @@ export function RepairsPage() {
       deviceModel: '',
       entryDate: new Date().toISOString().split('T')[0],
       problem: '',
-      status: 'PENDING',
+      status: 'IN_PROGRESS',
       costPrice: '',
       sellingPrice: '',
       deposit: '',
@@ -499,7 +495,7 @@ export function RepairsPage() {
       status: newStatus, 
       updatedAt: new Date().toISOString() 
     };
-    if (newStatus === 'COMPLETED') {
+    if (newStatus === 'DELIVERED') {
       updateData.completedAt = new Date().toISOString();
     }
     updateRepair(repair.id, updateData);
@@ -529,21 +525,23 @@ export function RepairsPage() {
               <DialogTitle>{editingRepair ? '✏️ تعديل طلب' : '➕ طلب صيانة جديد'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
-              {/* الصف الأول: العميل ونوع الجهاز */}
+              {/* الصف الأول: العميل */}
+              <div className="space-y-1">
+                <Label className="text-sm text-muted-foreground">العميل *</Label>
+                <CustomerPredictiveInput
+                  customerId={formData.customerId}
+                  customerName={customerNameInput}
+                  onCustomerChange={(id, name, isNew) => {
+                    setFormData({ ...formData, customerId: id });
+                    setCustomerNameInput(name);
+                  }}
+                  customers={customers}
+                  placeholder="ابدأ بالكتابة..."
+                />
+              </div>
+
+              {/* الصف الثاني: نوع الجهاز والموديل */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-sm text-muted-foreground">العميل *</Label>
-                  <CustomerPredictiveInput
-                    customerId={formData.customerId}
-                    customerName={customerNameInput}
-                    onCustomerChange={(id, name, isNew) => {
-                      setFormData({ ...formData, customerId: id });
-                      setCustomerNameInput(name);
-                    }}
-                    customers={customers}
-                    placeholder="ابدأ بالكتابة..."
-                  />
-                </div>
                 <div className="space-y-1">
                   <Label className="text-sm text-muted-foreground">نوع الجهاز *</Label>
                   <PredictiveInput
@@ -553,10 +551,6 @@ export function RepairsPage() {
                     placeholder="ابدأ بالكتابة..."
                   />
                 </div>
-              </div>
-
-              {/* الصف الثاني: الموديل، التاريخ، الحالة */}
-              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label className="text-sm text-muted-foreground">الموديل *</Label>
                   <PredictiveInput
@@ -566,6 +560,10 @@ export function RepairsPage() {
                     placeholder="ابدأ بالكتابة..."
                   />
                 </div>
+              </div>
+
+              {/* الصف الثالث: التاريخ والحالة */}
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-sm text-muted-foreground">التاريخ</Label>
                   <Input
@@ -602,7 +600,7 @@ export function RepairsPage() {
                 />
               </div>
 
-              {/* الصف الثالث: العربون، سعر الشراء، سعر البيع */}
+              {/* الصف الرابع: العربون، سعر الشراء، سعر البيع */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label className="text-sm text-muted-foreground">العربون</Label>

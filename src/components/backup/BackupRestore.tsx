@@ -55,24 +55,17 @@ const STORAGE_KEY = 'mobileRepairApp_v3';
 
 // حالة الصيانة
 const STATUS_OPTIONS: Record<string, string> = {
-  'PENDING': 'قيد الانتظار',
-  'DIAGNOSING': 'قيد التشخيص',
-  'WAITING_PARTS': 'في انتظار القطع',
   'IN_PROGRESS': 'قيد الإصلاح',
-  'COMPLETED': 'تم الإصلاح',
-  'DELIVERED': 'تم التسليم',
+  'DELIVERED': 'تم الإصلاح والتسليم',
   'CANCELLED': 'ملغي',
 };
 
 // تحويل النص إلى كود الحالة
 const getStatusCode = (text: string): string => {
-  if (text.includes('تشخيص')) return 'DIAGNOSING';
-  if (text.includes('انتظار')) return 'WAITING_PARTS';
   if (text.includes('إصلاح') && !text.includes('تم')) return 'IN_PROGRESS';
-  if (text.includes('تم الإصلاح')) return 'COMPLETED';
-  if (text.includes('تسليم')) return 'DELIVERED';
+  if (text.includes('تم الإصلاح') || text.includes('تسليم')) return 'DELIVERED';
   if (text.includes('ملغي')) return 'CANCELLED';
-  return 'PENDING';
+  return 'IN_PROGRESS';
 };
 
 // تنسيق التاريخ بصيغة إنجليزية قياسية ليتعامل معه Excel كتاريخ
@@ -196,7 +189,7 @@ export function BackupRestore() {
           'Model': r.deviceModel || '',
           'Problem': r.problem || '',
           'Status': STATUS_OPTIONS[r.status] || r.status || '',
-          'Status_Code': r.status || 'PENDING',
+          'Status_Code': r.status || 'IN_PROGRESS',
           'Cost_Price': r.maintenanceCost || 0,
           'Selling_Price': r.finalCost || 0,
           'Deposit': r.deposit || 0,

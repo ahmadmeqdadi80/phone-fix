@@ -141,10 +141,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     .reduce((sum, r) => sum + (r.debt || 0), 0);
 
   const pendingRepairs = filteredRepairs.filter(r => 
-    r.status === 'PENDING' || r.status === 'DIAGNOSING' || r.status === 'IN_PROGRESS'
+    r.status === 'IN_PROGRESS'
   ).length;
 
-  const completedRepairs = filteredRepairs.filter(r => r.status === 'COMPLETED' || r.status === 'DELIVERED').length;
+  const completedRepairs = filteredRepairs.filter(r => r.status === 'DELIVERED').length;
 
   const pendingPayments = filteredInvoices
     .filter(i => i.status === 'PENDING' || i.status === 'PARTIAL')
@@ -152,22 +152,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   // حالة الصيانة
   const statusColors: Record<string, string> = {
-    PENDING: 'bg-yellow-500',
-    DIAGNOSING: 'bg-blue-500',
-    WAITING_PARTS: 'bg-orange-500',
     IN_PROGRESS: 'bg-purple-500',
-    COMPLETED: 'bg-green-500',
-    DELIVERED: 'bg-teal-500',
+    DELIVERED: 'bg-green-500',
     CANCELLED: 'bg-red-500',
   };
 
   const statusLabels: Record<string, string> = {
-    PENDING: 'قيد الانتظار',
-    DIAGNOSING: 'قيد التشخيص',
-    WAITING_PARTS: 'في انتظار القطع',
     IN_PROGRESS: 'قيد الإصلاح',
-    COMPLETED: 'تم الإصلاح',
-    DELIVERED: 'تم التسليم',
+    DELIVERED: 'تم الإصلاح والتسليم',
     CANCELLED: 'ملغي',
   };
 

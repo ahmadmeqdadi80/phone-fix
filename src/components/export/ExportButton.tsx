@@ -26,12 +26,8 @@ interface ExportButtonProps {
 }
 
 const statusLabels: Record<string, string> = {
-  'PENDING': 'قيد الانتظار',
-  'DIAGNOSING': 'قيد التشخيص',
-  'WAITING_PARTS': 'في انتظار القطع',
   'IN_PROGRESS': 'قيد الإصلاح',
-  'COMPLETED': 'تم الإصلاح',
-  'DELIVERED': 'تم التسليم',
+  'DELIVERED': 'تم الإصلاح والتسليم',
   'CANCELLED': 'ملغي',
   'PAID': 'مدفوعة',
   'PARTIAL': 'مدفوعة جزئياً',

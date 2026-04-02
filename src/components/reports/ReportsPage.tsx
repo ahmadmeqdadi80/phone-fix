@@ -129,7 +129,7 @@ export function ReportsPage() {
   // إحصائيات الصيانة
   const completedRepairs = deliveredRepairs.length;
   const pendingRepairs = filteredRepairs.filter(r => 
-    r.status === 'PENDING' || r.status === 'IN_PROGRESS' || r.status === 'DIAGNOSING'
+    r.status === 'IN_PROGRESS'
   ).length;
 
   // بيانات أنواع الأجهزة
@@ -146,9 +146,8 @@ export function ReportsPage() {
 
   // بيانات حالات الصيانة
   const repairStatusData = [
-    { name: 'قيد الانتظار', value: filteredRepairs.filter(r => r.status === 'PENDING').length, color: '#f59e0b' },
-    { name: 'قيد الإصلاح', value: filteredRepairs.filter(r => r.status === 'IN_PROGRESS' || r.status === 'DIAGNOSING').length, color: '#3b82f6' },
-    { name: 'مكتمل', value: filteredRepairs.filter(r => r.status === 'COMPLETED' || r.status === 'DELIVERED').length, color: '#10b981' },
+    { name: 'قيد الإصلاح', value: filteredRepairs.filter(r => r.status === 'IN_PROGRESS').length, color: '#8b5cf6' },
+    { name: 'تم الإصلاح والتسليم', value: filteredRepairs.filter(r => r.status === 'DELIVERED').length, color: '#10b981' },
     { name: 'ملغي', value: filteredRepairs.filter(r => r.status === 'CANCELLED').length, color: '#ef4444' },
   ].filter(d => d.value > 0);
 
