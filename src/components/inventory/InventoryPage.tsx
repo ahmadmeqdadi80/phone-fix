@@ -402,26 +402,24 @@ export function InventoryPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
                 {filteredInventory.map((item) => (
                   <div key={item.id} className={`border rounded-lg p-3 space-y-2 ${isLowStock(item) ? 'border-red-200 bg-red-50 dark:bg-red-950/20' : ''}`}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-base truncate">{item.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">{item.category}</Badge>
-                          {item.brand && <span className="text-xs text-muted-foreground">{item.brand}</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 mr-2">
-                        <span className={`text-sm font-bold ${isLowStock(item) ? 'text-red-600' : ''}`}>{item.quantity}</span>
+                    {/* السطر الأول: الاسم */}
+                    <h3 className="font-bold text-base">{item.name}</h3>
+                    {/* السطر الثاني: الفئة والعلامة التجارية */}
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">{item.category}</Badge>
+                      {item.brand && <span className="text-xs text-muted-foreground">{item.brand}</span>}
+                    </div>
+                    {/* السطر الثالث: الكمية والأسعار */}
+                    <div className="flex items-center justify-between text-sm pt-2 border-t">
+                      <div className="flex items-center gap-1">
+                        <span className={`font-bold ${isLowStock(item) ? 'text-red-600' : ''}`}>{item.quantity}</span>
                         {isLowStock(item) && <AlertTriangle className="h-4 w-4 text-red-500" />}
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm pt-2 border-t">
                       <div className="flex gap-2">
                         <span className="text-orange-600">{item.costPrice.toLocaleString()}</span>
                         <span className="text-muted-foreground">→</span>
                         <span className="text-blue-600">{item.sellingPrice.toLocaleString()}</span>
                       </div>
-                      <span className="text-green-600 font-bold">+{((item.sellingPrice - item.costPrice) || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex gap-1 pt-2">
                       <Button 
