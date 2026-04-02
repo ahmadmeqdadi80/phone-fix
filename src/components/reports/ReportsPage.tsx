@@ -31,13 +31,14 @@ const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-type PeriodFilter = 'day' | 'week' | 'thisMonth' | 'lastMonth' | 'year' | 'all';
+type PeriodFilter = 'day' | 'week' | 'thisMonth' | 'lastMonth' | 'lastMonth22' | 'year' | 'all';
 
 const periodOptions: { value: PeriodFilter; label: string }[] = [
   { value: 'day', label: 'اليوم' },
   { value: 'week', label: 'هذا الأسبوع' },
   { value: 'thisMonth', label: 'هذا الشهر' },
   { value: 'lastMonth', label: 'الشهر الماضي' },
+  { value: 'lastMonth22', label: 'آخر شهر (22-21)' },
   { value: 'year', label: 'هذا العام' },
   { value: 'all', label: 'طوال الوقت' },
 ];
@@ -68,6 +69,19 @@ export function ReportsPage() {
       case 'lastMonth':
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        break;
+      case 'lastMonth22':
+        // من يوم 22 الشهر الماضي إلى يوم 21 هذا الشهر
+        const currentDay = now.getDate();
+        if (currentDay >= 22) {
+          // نحن بعد يوم 22، فالفترة من 22 هذا الشهر إلى 21 الشهر القادم
+          start = new Date(now.getFullYear(), now.getMonth(), 22, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth() + 1, 21, 23, 59, 59);
+        } else {
+          // نحن قبل يوم 22، فالفترة من 22 الشهر الماضي إلى 21 هذا الشهر
+          start = new Date(now.getFullYear(), now.getMonth() - 1, 22, 0, 0, 0);
+          end = new Date(now.getFullYear(), now.getMonth(), 21, 23, 59, 59);
+        }
         break;
       case 'year':
         start = new Date(now.getFullYear(), 0, 1);

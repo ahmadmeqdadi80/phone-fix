@@ -48,6 +48,19 @@ const statusOptions = [
   { value: 'CANCELLED', label: 'ملغي', color: 'bg-red-500' },
 ];
 
+type PeriodFilter = 'day' | 'week' | 'thisMonth' | 'lastMonth' | 'lastMonth22' | 'year' | 'all' | 'custom';
+
+const periodOptions: { value: PeriodFilter; label: string }[] = [
+  { value: 'day', label: 'اليوم' },
+  { value: 'week', label: 'هذا الأسبوع' },
+  { value: 'thisMonth', label: 'هذا الشهر' },
+  { value: 'lastMonth', label: 'الشهر الماضي' },
+  { value: 'lastMonth22', label: 'آخر شهر (22-21)' },
+  { value: 'year', label: 'هذا العام' },
+  { value: 'all', label: 'طوال الوقت' },
+  { value: 'custom', label: 'مخصص' },
+];
+
 // مكون الإدخال التنبؤي البسيط
 function PredictiveInput({ 
   value, 
@@ -218,6 +231,9 @@ export function RepairsPage() {
   const { repairs, customers, inventory, addRepair, updateRepair, deleteRepair, addCustomer, addInventory } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewingRepair, setViewingRepair] = useState<Repair | null>(null);
@@ -233,6 +249,63 @@ export function RepairsPage() {
 
   // حقل اسم العميل للتخزين المؤقت
   const [customerNameInput, setCustomerNameInput] = useState('');
+
+  // حساب تاريخ البداية والنهاية حسب الفترة
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = now;
+
+    switch (period) {
+      case 'day':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        break;
+      case 'week':
+        const dayOfWeek = now.getDay();
+        startDate = new Date(now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'thisMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'lastMonth':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        break;
+      case 'lastMonth22':
+        // من يوم 22 الشهر الماضي إلى يوم 21 هذا الشهر
+        const currentDay = now.getDate();
+        if (currentDay >= 22) {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 22, 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 21, 23, 59, 59);
+        } else {
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 22, 0, 0, 0);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 21, 23, 59, 59);
+        }
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          startDate = new Date(customStartDate);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(customEndDate);
+          endDate.setHours(23, 59, 59, 999);
+        } else {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        break;
+      case 'all':
+      default:
+        startDate = new Date(0);
+        break;
+    }
+
+    return { startDate, endDate };
+  };
+
+  const { startDate, endDate } = getDateRange();
 
   const [formData, setFormData] = useState({
     customerId: '',
@@ -272,7 +345,9 @@ export function RepairsPage() {
       r.problem.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customers.find(c => c.id === r.customerId)?.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const date = new Date(r.createdAt);
+    const matchesDate = date >= startDate && date <= endDate;
+    return matchesSearch && matchesStatus && matchesDate;
   }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // حساب الربح لكل إصلاح
@@ -665,27 +740,58 @@ export function RepairsPage() {
       {/* البحث والفلترة */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="البحث بالموديل، المشكلة، أو العميل..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-9"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="البحث بالموديل، المشكلة، أو العميل..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="جميع الحالات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  {statusOptions.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="جميع الحالات" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الحالات</SelectItem>
-                {statusOptions.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* فلتر الوقت */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="اختر الفترة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodOptions.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {period === 'custom' && (
+                <div className="flex gap-2 flex-1">
+                  <Input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
