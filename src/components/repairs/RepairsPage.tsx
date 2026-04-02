@@ -231,7 +231,7 @@ export function RepairsPage() {
   const { repairs, customers, inventory, addRepair, updateRepair, deleteRepair, addCustomer, addInventory } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [period, setPeriod] = useState<PeriodFilter>('lastMonth22');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [visibleCount, setVisibleCount] = useState(20);

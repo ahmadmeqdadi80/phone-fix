@@ -45,7 +45,7 @@ const periodOptions: { value: PeriodFilter; label: string }[] = [
 
 export function ReportsPage() {
   const { customers, repairs, invoices, expenses, inventory } = useAppStore();
-  const [period, setPeriod] = useState<PeriodFilter>('thisMonth');
+  const [period, setPeriod] = useState<PeriodFilter>('lastMonth22');
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
 
   // حساب تاريخ البداية والنهاية حسب الفترة

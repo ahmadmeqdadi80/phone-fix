@@ -47,7 +47,7 @@ const periodOptions: { value: PeriodFilter; label: string }[] = [
 
 export function Dashboard({ onNavigate }: DashboardProps) {
   const { customers, repairs, inventory, invoices, expenses } = useAppStore();
-  const [period, setPeriod] = useState<PeriodFilter>('thisMonth');
+  const [period, setPeriod] = useState<PeriodFilter>('lastMonth22');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
