@@ -41,6 +41,7 @@ import { Plus, Search, Edit, Trash2, Receipt, TrendingDown, Calendar } from 'luc
 import { useAppStore, Expense } from '@/store';
 
 const expenseCategories = [
+  'مواصلات',
   'إيجار',
   'كهرباء',
   'ماء',
@@ -50,7 +51,6 @@ const expenseCategories = [
   'مشتريات مخزون',
   'معدات',
   'تسويق وإعلان',
-  'مواصلات',
   'طعام وضيافة',
   'مصاريف بنكية',
   'أخرى',
