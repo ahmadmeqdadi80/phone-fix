@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +66,8 @@ export function InventoryPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [stockAmount, setStockAmount] = useState('');
   const [stockType, setStockType] = useState<'in' | 'out'>('in');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -81,14 +83,21 @@ export function InventoryPage() {
     notes: '',
   });
 
-  const filteredInventory = inventory.filter(i => {
+  const filteredInventory = useMemo(() => inventory.filter(i => {
     const matchesSearch =
       i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       i.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       i.sku?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || i.category === categoryFilter;
     return matchesSearch && matchesCategory;
-  });
+  }), [inventory, searchTerm, categoryFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredInventory.length / itemsPerPage);
+  const paginatedInventory = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredInventory.slice(start, start + itemsPerPage);
+  }, [filteredInventory, currentPage]);
 
   const handleSubmit = () => {
     if (!formData.name || !formData.category) return;
@@ -400,7 +409,7 @@ export function InventoryPage() {
             <>
               {/* بطاقات للموبايل */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
-                {filteredInventory.map((item) => (
+                {paginatedInventory.map((item) => (
                   <div key={item.id} className={`border rounded-lg p-3 space-y-2 ${isLowStock(item) ? 'border-red-200 bg-red-50 dark:bg-red-950/20' : ''}`}>
                     {/* السطر الأول: الاسم */}
                     <h3 className="font-bold text-base">{item.name}</h3>
@@ -462,7 +471,7 @@ export function InventoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredInventory.map((item) => (
+                    {paginatedInventory.map((item) => (
                       <TableRow key={item.id} className={isLowStock(item) ? 'bg-red-50 dark:bg-red-950/20' : ''}>
                         <TableCell>
                           <div>
@@ -513,6 +522,47 @@ export function InventoryPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* أزرار التنقل بين الصفحات */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    الأول
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    السابق
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    التالي
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    الأخير
+                  </Button>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-12 text-muted-foreground">

@@ -234,6 +234,8 @@ export function RepairsPage() {
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewingRepair, setViewingRepair] = useState<Repair | null>(null);
@@ -339,16 +341,37 @@ export function RepairsPage() {
     return [...new Set([...defaultTypes, ...deviceTypesFromRepairs])];
   }, [deviceTypesFromRepairs]);
 
-  const filteredRepairs = repairs.filter(r => {
-    const matchesSearch =
-      r.deviceModel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.problem.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customers.find(c => c.id === r.customerId)?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
-    const date = new Date(r.createdAt);
-    const matchesDate = date >= startDate && date <= endDate;
-    return matchesSearch && matchesStatus && matchesDate;
-  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // تصفية الصيانة مع useMemo للأداء
+  const filteredRepairs = useMemo(() => {
+    return repairs.filter(r => {
+      const matchesSearch =
+        r.deviceModel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.problem.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customers.find(c => c.id === r.customerId)?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
+      const date = new Date(r.createdAt);
+      const matchesDate = date >= startDate && date <= endDate;
+      return matchesSearch && matchesStatus && matchesDate;
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [repairs, searchTerm, statusFilter, startDate, endDate, customers]);
+
+  // تقسيم الصفحات
+  const totalPages = Math.ceil(filteredRepairs.length / itemsPerPage);
+  const paginatedRepairs = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredRepairs.slice(start, start + itemsPerPage);
+  }, [filteredRepairs, currentPage]);
+
+  // إعادة تعيين الصفحة عند تغيير الفلتر
+  const handleFilterChange = (filter: string) => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handlePeriodChange = (newPeriod: PeriodFilter) => {
+    setPeriod(newPeriod);
+    setCurrentPage(1);
+  };
 
   // حساب الربح لكل إصلاح
   const calculateProfit = (repair: Repair) => {
@@ -751,7 +774,7 @@ export function RepairsPage() {
                   className="pr-9"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleFilterChange}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="جميع الحالات" />
                 </SelectTrigger>
@@ -765,7 +788,7 @@ export function RepairsPage() {
             </div>
             {/* فلتر الوقت */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
+              <Select value={period} onValueChange={(v) => handlePeriodChange(v as PeriodFilter)}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="اختر الفترة" />
                 </SelectTrigger>
@@ -806,7 +829,7 @@ export function RepairsPage() {
             <>
               {/* بطاقات للموبايل */}
               <div className="grid grid-cols-1 gap-3 md:hidden">
-                {filteredRepairs.map((repair) => {
+                {paginatedRepairs.map((repair) => {
                   const statusInfo = statusOptions.find(s => s.value === repair.status);
                   return (
                     <div key={repair.id} className="border rounded-lg p-3 space-y-2">
@@ -867,7 +890,7 @@ export function RepairsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRepairs.map((repair) => {
+                    {paginatedRepairs.map((repair) => {
                       return (
                         <TableRow key={repair.id}>
                           <TableCell className="font-medium">{getCustomerName(repair.customerId)}</TableCell>
@@ -919,6 +942,47 @@ export function RepairsPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {/* أزرار التنقل بين الصفحات */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    الأول
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    السابق
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    التالي
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    الأخير
+                  </Button>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
