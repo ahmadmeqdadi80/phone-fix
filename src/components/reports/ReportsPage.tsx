@@ -391,6 +391,15 @@ export function ReportsPage() {
 
       {/* بطاقات الإحصائيات - مربعة وموسطة */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+        <Card>
+          <CardContent className="p-3 md:p-4 text-center">
+            <div className="p-2 bg-blue-500 rounded-lg w-fit mx-auto mb-2">
+              <DollarSign className="h-5 w-5 md:h-6 md:w-6 text-white" />
+            </div>
+            <p className="text-xs md:text-sm text-muted-foreground">المبيعات</p>
+            <p className="text-base md:text-xl font-bold text-blue-600">{totalSales.toLocaleString()} د.أ</p>
+          </CardContent>
+        </Card>
         <Card className={totalProfit >= 0 ? 'border-green-200 bg-green-50 dark:bg-green-950/20' : 'border-red-200 bg-red-50 dark:bg-red-950/20'}>
           <CardContent className="p-3 md:p-4 text-center">
             <div className={`p-2 rounded-lg w-fit mx-auto mb-2 ${totalProfit >= 0 ? 'bg-green-500' : 'bg-red-500'}`}>
@@ -400,15 +409,6 @@ export function ReportsPage() {
             <p className={`text-base md:text-xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {totalProfit.toLocaleString()} د.أ
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 md:p-4 text-center">
-            <div className="p-2 bg-blue-500 rounded-lg w-fit mx-auto mb-2">
-              <DollarSign className="h-5 w-5 md:h-6 md:w-6 text-white" />
-            </div>
-            <p className="text-xs md:text-sm text-muted-foreground">المبيعات</p>
-            <p className="text-base md:text-xl font-bold text-blue-600">{totalSales.toLocaleString()} د.أ</p>
           </CardContent>
         </Card>
         <Card>
