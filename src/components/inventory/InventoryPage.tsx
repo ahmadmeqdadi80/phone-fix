@@ -410,7 +410,7 @@ export function InventoryPage() {
                       {item.brand && <span className="text-xs text-muted-foreground">{item.brand}</span>}
                     </div>
                     {/* السطر الثالث: الكمية والأسعار */}
-                    <div className="flex items-center justify-between text-sm pt-2 border-t">
+                    <div className="flex items-center justify-between text-sm pt-2 border-t flex-row-reverse">
                       <div className="flex items-center gap-1">
                         <span className={`font-bold ${isLowStock(item) ? 'text-red-600' : ''}`}>{item.quantity}</span>
                         {isLowStock(item) && <AlertTriangle className="h-4 w-4 text-red-500" />}
