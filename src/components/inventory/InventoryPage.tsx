@@ -66,8 +66,8 @@ export function InventoryPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [stockAmount, setStockAmount] = useState('');
   const [stockType, setStockType] = useState<'in' | 'out'>('in');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [visibleCount, setVisibleCount] = useState(20);
+  const itemsPerLoad = 20;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -92,12 +92,12 @@ export function InventoryPage() {
     return matchesSearch && matchesCategory;
   }), [inventory, searchTerm, categoryFilter]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredInventory.length / itemsPerPage);
-  const paginatedInventory = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredInventory.slice(start, start + itemsPerPage);
-  }, [filteredInventory, currentPage]);
+  // عرض عدد محدود من العناصر مع إمكانية التحميل
+  const visibleInventory = useMemo(() => {
+    return filteredInventory.slice(0, visibleCount);
+  }, [filteredInventory, visibleCount]);
+
+  const hasMoreItems = visibleCount < filteredInventory.length;
 
   const handleSubmit = () => {
     if (!formData.name || !formData.category) return;
@@ -409,7 +409,7 @@ export function InventoryPage() {
             <>
               {/* بطاقات للموبايل */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
-                {paginatedInventory.map((item) => (
+                {visibleInventory.map((item) => (
                   <div key={item.id} className={`border rounded-lg p-3 space-y-2 ${isLowStock(item) ? 'border-red-200 bg-red-50 dark:bg-red-950/20' : ''}`}>
                     {/* السطر الأول: الاسم */}
                     <h3 className="font-bold text-base">{item.name}</h3>
@@ -471,7 +471,7 @@ export function InventoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedInventory.map((item) => (
+                    {visibleInventory.map((item) => (
                       <TableRow key={item.id} className={isLowStock(item) ? 'bg-red-50 dark:bg-red-950/20' : ''}>
                         <TableCell>
                           <div>
@@ -523,43 +523,18 @@ export function InventoryPage() {
                 </Table>
               </div>
               
-              {/* أزرار التنقل بين الصفحات */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+              {/* زر تحميل المزيد */}
+              {hasMoreItems && (
+                <div className="flex justify-center mt-4 pt-4 border-t">
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
+                    onClick={() => setVisibleCount(c => c + itemsPerLoad)}
+                    className="gap-2"
                   >
-                    الأول
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    السابق
-                  </Button>
-                  <span className="text-sm text-muted-foreground px-2">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    التالي
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
-                    الأخير
+                    تحميل المزيد
+                    <span className="text-xs text-muted-foreground">
+                      ({filteredInventory.length - visibleCount} متبقي)
+                    </span>
                   </Button>
                 </div>
               )}

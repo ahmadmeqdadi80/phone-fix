@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppStore, Customer, Repair, Inventory, Invoice, Expense } from '@/store';
 import { BottomNav } from '@/components/layout/Sidebar';
@@ -58,6 +58,9 @@ function HomeContent() {
     setCustomers, setRepairs, setInventory, setInvoices, setExpenses, setCurrentPage
   } = useAppStore();
 
+  // التعامل مع زر الرجوع في PWA - ضغطة للرجوع للرئيسية، ضغطة ثانية للخروج
+  const isNavigatingBack = useRef(false);
+
   // تحميل البيانات من localStorage
   useEffect(() => {
     const loadSampleData = () => {
@@ -102,6 +105,31 @@ function HomeContent() {
     }
   }, [searchParams, setCurrentPage, currentPage]);
 
+  // التعامل مع زر الرجوع في PWA
+  const handleNavigate = useCallback((page: string) => {
+    if (page !== currentPage) {
+      // إضافة state للتاريخ فقط إذا خرجنا من الرئيسية
+      if (currentPage === 'dashboard') {
+        window.history.pushState({ canGoBack: true }, '', `?tab=${page}`);
+      }
+      setCurrentPage(page);
+    }
+  }, [currentPage, setCurrentPage]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // عند الضغط على زر الرجوع، ارجع للرئيسية
+      isNavigatingBack.current = true;
+      setCurrentPage('dashboard');
+      setTimeout(() => {
+        isNavigatingBack.current = false;
+      }, 100);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [setCurrentPage]);
+
   // حفظ البيانات عند التغيير
   useEffect(() => {
     if (mounted) {
@@ -122,7 +150,7 @@ function HomeContent() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={handleNavigate} />;
       case 'customers':
         return <CustomersPage />;
       case 'repairs':
@@ -140,13 +168,13 @@ function HomeContent() {
       case 'backup':
         return <BackupRestore />;
       default:
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={handleNavigate} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <BottomNav currentPage={currentPage} onPageChange={setCurrentPage} />
+      <BottomNav currentPage={currentPage} onPageChange={handleNavigate} />
       <main className="md:mr-64 pt-16 md:pt-0 min-h-screen">
         <div className="p-3 md:p-6 lg:p-8">
           {renderPage()}

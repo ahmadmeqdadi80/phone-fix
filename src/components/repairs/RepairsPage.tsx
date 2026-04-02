@@ -234,8 +234,8 @@ export function RepairsPage() {
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [visibleCount, setVisibleCount] = useState(20);
+  const itemsPerLoad = 20;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewingRepair, setViewingRepair] = useState<Repair | null>(null);
@@ -355,22 +355,22 @@ export function RepairsPage() {
     }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [repairs, searchTerm, statusFilter, startDate, endDate, customers]);
 
-  // تقسيم الصفحات
-  const totalPages = Math.ceil(filteredRepairs.length / itemsPerPage);
-  const paginatedRepairs = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredRepairs.slice(start, start + itemsPerPage);
-  }, [filteredRepairs, currentPage]);
+  // عرض عدد محدود من العناصر مع إمكانية التحميل
+  const visibleRepairs = useMemo(() => {
+    return filteredRepairs.slice(0, visibleCount);
+  }, [filteredRepairs, visibleCount]);
 
-  // إعادة تعيين الصفحة عند تغيير الفلتر
+  const hasMoreItems = visibleCount < filteredRepairs.length;
+
+  // إعادة تعيين العداد عند تغيير الفلتر
   const handleFilterChange = (filter: string) => {
     setStatusFilter(filter);
-    setCurrentPage(1);
+    setVisibleCount(20);
   };
 
   const handlePeriodChange = (newPeriod: PeriodFilter) => {
     setPeriod(newPeriod);
-    setCurrentPage(1);
+    setVisibleCount(20);
   };
 
   // حساب الربح لكل إصلاح
@@ -829,7 +829,7 @@ export function RepairsPage() {
             <>
               {/* بطاقات للموبايل */}
               <div className="grid grid-cols-1 gap-3 md:hidden">
-                {paginatedRepairs.map((repair) => {
+                {visibleRepairs.map((repair) => {
                   const statusInfo = statusOptions.find(s => s.value === repair.status);
                   return (
                     <div key={repair.id} className="border rounded-lg p-3 space-y-2">
@@ -890,7 +890,7 @@ export function RepairsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedRepairs.map((repair) => {
+                    {visibleRepairs.map((repair) => {
                       return (
                         <TableRow key={repair.id}>
                           <TableCell className="font-medium">{getCustomerName(repair.customerId)}</TableCell>
@@ -943,43 +943,18 @@ export function RepairsPage() {
                 </Table>
               </div>
               
-              {/* أزرار التنقل بين الصفحات */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+              {/* زر تحميل المزيد */}
+              {hasMoreItems && (
+                <div className="flex justify-center mt-4 pt-4 border-t">
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
+                    onClick={() => setVisibleCount(c => c + itemsPerLoad)}
+                    className="gap-2"
                   >
-                    الأول
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    السابق
-                  </Button>
-                  <span className="text-sm text-muted-foreground px-2">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    التالي
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
-                    الأخير
+                    تحميل المزيد
+                    <span className="text-xs text-muted-foreground">
+                      ({filteredRepairs.length - visibleCount} متبقي)
+                    </span>
                   </Button>
                 </div>
               )}

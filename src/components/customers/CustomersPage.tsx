@@ -40,8 +40,8 @@ export function CustomersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [visibleCount, setVisibleCount] = useState(20);
+  const itemsPerLoad = 20;
   
   // Form state
   const [formData, setFormData] = useState({
@@ -57,12 +57,12 @@ export function CustomersPage() {
     c.phone.includes(searchTerm)
   ), [customers, searchTerm]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const paginatedCustomers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredCustomers.slice(start, start + itemsPerPage);
-  }, [filteredCustomers, currentPage]);
+  // عرض عدد محدود من العناصر مع إمكانية التحميل
+  const visibleCustomers = useMemo(() => {
+    return filteredCustomers.slice(0, visibleCount);
+  }, [filteredCustomers, visibleCount]);
+
+  const hasMoreItems = visibleCount < filteredCustomers.length;
 
   const handleSubmit = () => {
     if (!formData.name) return;
@@ -219,7 +219,7 @@ export function CustomersPage() {
             <>
               {/* بطاقات للموبايل */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
-                {paginatedCustomers.map((customer) => (
+                {visibleCustomers.map((customer) => (
                   <div key={customer.id} className="border rounded-lg p-3 space-y-2">
                     <div className="flex items-start justify-between">
                       <h3 className="font-bold text-base">{customer.name}</h3>
@@ -267,7 +267,7 @@ export function CustomersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedCustomers.map((customer) => (
+                    {visibleCustomers.map((customer) => (
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell dir="ltr">
@@ -308,43 +308,18 @@ export function CustomersPage() {
                 </Table>
               </div>
               
-              {/* أزرار التنقل بين الصفحات */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+              {/* زر تحميل المزيد */}
+              {hasMoreItems && (
+                <div className="flex justify-center mt-4 pt-4 border-t">
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
+                    onClick={() => setVisibleCount(c => c + itemsPerLoad)}
+                    className="gap-2"
                   >
-                    الأول
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    السابق
-                  </Button>
-                  <span className="text-sm text-muted-foreground px-2">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    التالي
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
-                    الأخير
+                    تحميل المزيد
+                    <span className="text-xs text-muted-foreground">
+                      ({filteredCustomers.length - visibleCount} متبقي)
+                    </span>
                   </Button>
                 </div>
               )}
