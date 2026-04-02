@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppStore, Customer, Repair, Inventory, Invoice, Expense } from '@/store';
 import { BottomNav } from '@/components/layout/Sidebar';
@@ -58,10 +58,6 @@ function HomeContent() {
     setCustomers, setRepairs, setInventory, setInvoices, setExpenses, setCurrentPage
   } = useAppStore();
 
-  // التعامل مع زر الرجوع في PWA - ضغطة للرجوع للرئيسية، ضغطة ثانية للخروج
-  const [showExitMessage, setShowExitMessage] = useState(false);
-  const lastBackPress = useRef(0);
-
   // تحميل البيانات من localStorage
   useEffect(() => {
     const loadSampleData = () => {
@@ -106,50 +102,6 @@ function HomeContent() {
     }
   }, [searchParams, setCurrentPage, currentPage]);
 
-  // التعامل مع زر الرجوع في PWA
-  const handleNavigate = useCallback((page: string) => {
-    if (page !== currentPage) {
-      // إضافة state للتاريخ للسماح بالرجوع
-      if (currentPage === 'dashboard') {
-        window.history.pushState({ fromDashboard: true }, '', `?tab=${page}`);
-      }
-      setCurrentPage(page);
-      setShowExitMessage(false);
-    }
-  }, [currentPage, setCurrentPage]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const now = Date.now();
-      
-      if (currentPage === 'dashboard') {
-        // نحن في الرئيسية - تحقق من الضغط المزدوج للخروج
-        if (now - lastBackPress.current < 2000) {
-          // ضغط مرتين خلال ثانيتين - اخرج
-          window.history.back();
-        } else {
-          // الضغطة الأولى - أظهر رسالة
-          lastBackPress.current = now;
-          setShowExitMessage(true);
-          // أعد إضافة state للسماح بالضغط مرة أخرى
-          window.history.pushState({ onDashboard: true }, '', '/');
-          // أخفِ الرسالة بعد ثانيتين
-          setTimeout(() => setShowExitMessage(false), 2000);
-        }
-      } else {
-        // نحن في صفحة أخرى - ارجع للرئيسية
-        setCurrentPage('dashboard');
-        setShowExitMessage(false);
-      }
-    };
-
-    // أضف state مبدئي
-    window.history.pushState({ onDashboard: currentPage === 'dashboard' }, '', currentPage === 'dashboard' ? '/' : `?tab=${currentPage}`);
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [setCurrentPage, currentPage]);
-
   // حفظ البيانات عند التغيير
   useEffect(() => {
     if (mounted) {
@@ -170,7 +122,7 @@ function HomeContent() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard onNavigate={handleNavigate} />;
+        return <Dashboard onNavigate={setCurrentPage} />;
       case 'customers':
         return <CustomersPage />;
       case 'repairs':
@@ -188,25 +140,18 @@ function HomeContent() {
       case 'backup':
         return <BackupRestore />;
       default:
-        return <Dashboard onNavigate={handleNavigate} />;
+        return <Dashboard onNavigate={setCurrentPage} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <BottomNav currentPage={currentPage} onPageChange={handleNavigate} />
+      <BottomNav currentPage={currentPage} onPageChange={setCurrentPage} />
       <main className="md:mr-64 pt-16 md:pt-0 min-h-screen">
         <div className="p-3 md:p-6 lg:p-8">
           {renderPage()}
         </div>
       </main>
-      
-      {/* رسالة الخروج */}
-      {showExitMessage && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-pulse">
-          اضغط مرة أخرى للخروج
-        </div>
-      )}
     </div>
   );
 }
