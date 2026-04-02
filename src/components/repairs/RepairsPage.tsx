@@ -373,10 +373,10 @@ export function RepairsPage() {
     setVisibleCount(20);
   };
 
-  // حساب الربح لكل إصلاح
+  // حساب الربح لكل إصلاح (سعر الشراء = 0 إذا لم يكن موجوداً)
   const calculateProfit = (repair: Repair) => {
-    if (repair.finalCost && repair.maintenanceCost) {
-      return repair.finalCost - repair.maintenanceCost;
+    if (repair.finalCost) {
+      return repair.finalCost - (repair.maintenanceCost || 0);
     }
     return null;
   };
