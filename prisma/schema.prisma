@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// العملاء
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @default("")
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  repairs   Repair[]
+  invoices  Invoice[]
+}
+
+// طلبات الصيانة
+model Repair {
+  id              String      @id @default(cuid())
+  customerId      String
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  deviceType      String
+  deviceModel     String
+  entryDate       DateTime    @default(now())
+  problem         String
+  diagnosis       String?
+  solution        String?
+  status          RepairStatus @default(PENDING)
+  maintenanceCost Float?
+  finalCost       Float?
+  deposit         Float       @default(0)
+  paidAmount      Float       @default(0)
+  debt            Float       @default(0)
+  lastPaymentDate DateTime?
+  receivedAt      DateTime    @default(now())
+  estimatedDate   DateTime?
+  completedAt     DateTime?
+  deliveredAt     DateTime?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  repairItems     RepairItem[]
+  invoice         Invoice?
+}
+
+// قطع الغيار المستخدمة في الصيانة
+model RepairItem {
+  id          String   @id @default(cuid())
+  repairId    String
+  repair      Repair   @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  inventoryId String
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  quantity    Int
+  unitPrice   Float
+  createdAt   DateTime @default(now())
+}
+
+// المخزون - قطع الغيار
+model Inventory {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  brand       String?
+  compatibleModels String?
+  sku         String?
+  quantity    Int      @default(0)
+  minQuantity Int      @default(5)
+  costPrice   Float    @default(0)
+  sellingPrice Float   @default(0)
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  repairItems  RepairItem[]
+  stockHistory StockHistory[]
+}
+
+// سجل حركة المخزون
+model StockHistory {
+  id          String      @id @default(cuid())
+  inventoryId String
+  inventory   Inventory   @relation(fields: [inventoryId], references: [id])
+  type        StockType
+  quantity    Int
+  reason      String?
+  createdAt   DateTime    @default(now())
+}
+
+// الفواتير
+model Invoice {
+  id          String      @id @default(cuid())
+  invoiceNumber String    @unique
+  customerId  String?
+  customer    Customer?   @relation(fields: [customerId], references: [id])
+  repairId    String?     @unique
+  repair      Repair?     @relation(fields: [repairId], references: [id])
+  subtotal    Float       @default(0)
+  discount    Float       @default(0)
+  tax         Float       @default(0)
+  total       Float       @default(0)
+  paid        Float       @default(0)
+  status      InvoiceStatus @default(PENDING)
+  paymentMethod PaymentMethod?
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items       InvoiceItem[]
+}
+
+// عناصر الفاتورة
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int      @default(1)
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+}
+
+// المصاريف
+model Expense {
+  id          String       @id @default(cuid())
+  category    String
+  description String
+  amount      Float
+  date        DateTime     @default(now())
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// الإعدادات
+model Settings {
+  id          String   @id @default(cuid())
+  key        String   @unique
+  value      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum RepairStatus {
+  PENDING
+  DIAGNOSING
+  WAITING_PARTS
+  IN_PROGRESS
+  COMPLETED
+  DELIVERED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  PARTIAL
+  CANCELLED
+}
+
+enum StockType {
+  IN
+  OUT
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}

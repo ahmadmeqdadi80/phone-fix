@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام محاسبة صيانة الموبايل</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    
+    * {
+      font-family: 'Cairo', sans-serif;
+    }
+    
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 222.2 84% 4.9%;
+      --card: 0 0% 100%;
+      --card-foreground: 222.2 84% 4.9%;
+      --primary: 262.1 83.3% 57.8%;
+      --primary-foreground: 210 40% 98%;
+      --secondary: 210 40% 96.1%;
+      --secondary-foreground: 222.2 47.4% 11.2%;
+      --muted: 210 40% 96.1%;
+      --muted-foreground: 215.4 16.3% 46.9%;
+      --accent: 210 40% 96.1%;
+      --accent-foreground: 222.2 47.4% 11.2%;
+      --destructive: 0 84.2% 60.2%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 214.3 31.8% 91.4%;
+      --ring: 262.1 83.3% 57.8%;
+      --radius: 0.5rem;
+    }
+    
+    .dark {
+      --background: 222.2 84% 4.9%;
+      --foreground: 210 40% 98%;
+      --card: 222.2 84% 4.9%;
+      --card-foreground: 210 40% 98%;
+      --primary: 263.4 70% 50.4%;
+      --primary-foreground: 210 40% 98%;
+      --secondary: 217.2 32.6% 17.5%;
+      --secondary-foreground: 210 40% 98%;
+      --muted: 217.2 32.6% 17.5%;
+      --muted-foreground: 215 20.2% 65.1%;
+      --accent: 217.2 32.6% 17.5%;
+      --accent-foreground: 210 40% 98%;
+      --destructive: 0 62.8% 30.6%;
+      --destructive-foreground: 210 40% 98%;
+      --border: 217.2 32.6% 17.5%;
+      --ring: 263.4 70% 50.4%;
+    }
+    
+    body {
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+    }
+    
+    .bg-background { background-color: hsl(var(--background)); }
+    .bg-card { background-color: hsl(var(--card)); }
+    .bg-primary { background-color: hsl(var(--primary)); }
+    .bg-secondary { background-color: hsl(var(--secondary)); }
+    .bg-destructive { background-color: hsl(var(--destructive)); }
+    
+    .text-foreground { color: hsl(var(--foreground)); }
+    .text-card-foreground { color: hsl(var(--card-foreground)); }
+    .text-primary { color: hsl(var(--primary)); }
+    .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+    .text-secondary-foreground { color: hsl(var(--secondary-foreground)); }
+    .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+    .text-destructive { color: hsl(var(--destructive)); }
+    
+    .border-border { border-color: hsl(var(--border)); }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+      font-size: 0.875rem;
+    }
+    
+    .btn-primary {
+      background-color: hsl(var(--primary));
+      color: hsl(var(--primary-foreground));
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    
+    .btn-outline {
+      border: 1px solid hsl(var(--border));
+      background-color: transparent;
+      color: hsl(var(--foreground));
+    }
+    
+    .btn-outline:hover {
+      background-color: hsl(var(--accent));
+    }
+    
+    .btn-ghost {
+      background-color: transparent;
+      color: hsl(var(--foreground));
+    }
+    
+    .btn-ghost:hover {
+      background-color: hsl(var(--accent));
+    }
+    
+    .btn-destructive {
+      background-color: hsl(var(--destructive));
+      color: hsl(var(--destructive-foreground));
+    }
+    
+    .btn-success {
+      background-color: #22c55e;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background-color: #16a34a;
+    }
+    
+    .btn-sm {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.875rem;
+    }
+    
+    .btn-icon {
+      padding: 0.5rem;
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+    
+    .input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-size: 0.875rem;
+    }
+    
+    .input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px hsl(var(--ring));
+    }
+    
+    .card {
+      background-color: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.75rem;
+    }
+    
+    .card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+    
+    .card-content {
+      padding: 1.5rem;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+    }
+    
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .table th, .table td {
+      padding: 0.75rem 1rem;
+      text-align: right;
+      border-bottom: 1px solid hsl(var(--border));
+    }
+    
+    .table th {
+      font-weight: 600;
+      color: hsl(var(--muted-foreground));
+      font-size: 0.875rem;
+    }
+    
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .dialog-content {
+      background-color: hsl(var(--card));
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      max-width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideIn 0.2s;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    .select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    
+    .label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+    
+    .textarea {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid hsl(var(--border));
+      border-radius: 0.5rem;
+      background-color: hsl(var(--background));
+      color: hsl(var(--foreground));
+      font-size: 0.875rem;
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Drawer Styles */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .drawer-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 280px;
+      max-width: 85vw;
+      background-color: hsl(var(--card));
+      z-index: 101;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .drawer.open {
+      transform: translateX(0);
+    }
+    
+    /* Mobile Header */
+    .mobile-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background-color: hsl(var(--card));
+      border-bottom: 1px solid hsl(var(--border));
+      padding: 0.75rem 1rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    @media (max-width: 768px) {
+      .mobile-header {
+        display: flex;
+      }
+    }
+    
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: hsl(var(--muted));
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground));
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--foreground));
+    }
+    
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-background">
+  <div id="app"></div>
+  
+  <script>
+    // ==================== DATA STORE ====================
+    const Store = {
+      data: {
+        customers: [],
+        repairs: [],
+        inventory: [],
+        invoices: [],
+        expenses: []
+      },
+      
+      init() {
+        const saved = localStorage.getItem('mobileRepairApp');
+        if (saved) {
+          try {
+            this.data = JSON.parse(saved);
+          } catch (e) {
+            console.error('Error loading data:', e);
+          }
+        }
+        if (this.data.customers.length === 0) {
+          this.addSampleData();
+        }
+      },
+      
+      save() {
+        localStorage.setItem('mobileRepairApp', JSON.stringify(this.data));
+      },
+      
+      addSampleData() {
+        this.data.customers = [
+          { id: 'c1', name: 'أحمد محمد', phone: '0791234567', email: 'ahmed@email.com', address: 'عمان', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'c2', name: 'سارة علي', phone: '0797654321', email: 'sara@email.com', address: 'الزرقاء', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'c3', name: 'محمد خالد', phone: '0799876543', email: '', address: 'إربد', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ];
+        
+        this.data.repairs = [
+          { id: 'r1', customerId: 'c1', deviceType: 'iPhone', deviceModel: 'iPhone 14 Pro', entryDate: new Date(Date.now() - 86400000).toISOString(), problem: 'شاشة مكسورة', diagnosis: 'تحتاج تغيير شاشة', solution: '', status: 'DELIVERED', maintenanceCost: 150, finalCost: 250, deposit: 50, paidAmount: 250, debt: 0, receivedAt: new Date(Date.now() - 86400000).toISOString(), estimatedDate: null, completedAt: new Date().toISOString(), deliveredAt: new Date().toISOString(), notes: '', createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'r2', customerId: 'c2', deviceType: 'Samsung', deviceModel: 'Galaxy S23', entryDate: new Date().toISOString(), problem: 'بطارية تفرغ بسرعة', diagnosis: '', solution: '', status: 'IN_PROGRESS', maintenanceCost: 30, finalCost: 80, deposit: 20, paidAmount: 0, debt: 0, receivedAt: new Date().toISOString(), estimatedDate: null, completedAt: null, deliveredAt: null, notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'r3', customerId: 'c3', deviceType: 'Xiaomi', deviceModel: 'Redmi Note 12', entryDate: new Date().toISOString(), problem: 'لا يشتغل', diagnosis: 'قيد التشخيص', solution: '', status: 'DIAGNOSING', maintenanceCost: null, finalCost: null, deposit: 0, paidAmount: 0, debt: 0, receivedAt: new Date().toISOString(), estimatedDate: null, completedAt: null, deliveredAt: null, notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ];
+        
+        this.data.inventory = [
+          { id: 'i1', name: 'شاشة iPhone 14 Pro', category: 'شاشات', brand: 'Apple', compatibleModels: 'iPhone 14 Pro', sku: 'SCR-IP14P', quantity: 5, minQuantity: 2, costPrice: 120, sellingPrice: 180, location: 'رف A1', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'i2', name: 'بطارية Samsung S23', category: 'بطاريات', brand: 'Samsung', compatibleModels: 'Galaxy S23', sku: 'BAT-S23', quantity: 10, minQuantity: 3, costPrice: 25, sellingPrice: 50, location: 'رف B2', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'i3', name: 'شاحن سريع 25W', category: 'إكسسوارات', brand: 'Samsung', compatibleModels: 'جميع الأجهزة', sku: 'CHR-25W', quantity: 15, minQuantity: 5, costPrice: 8, sellingPrice: 15, location: 'رف C1', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ];
+        
+        this.data.expenses = [
+          { id: 'e1', category: 'إيجار', description: 'إيجار المحل - شباط', amount: 300, date: new Date().toISOString(), notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: 'e2', category: 'كهرباء', description: 'فاتورة الكهرباء', amount: 50, date: new Date().toISOString(), notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        ];
+        
+        this.data.invoices = [
+          { id: 'inv1', invoiceNumber: 'INV-001', customerId: 'c1', repairId: 'r1', subtotal: 250, discount: 0, tax: 0, total: 250, paid: 250, status: 'PAID', paymentMethod: 'CASH', notes: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), items: [{ id: 'item1', invoiceId: 'inv1', description: 'إصلاح شاشة iPhone 14 Pro', quantity: 1, unitPrice: 250, total: 250, createdAt: new Date().toISOString() }] }
+        ];
+        
+        this.save();
+      },
+      
+      add(collection, item) {
+        item.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        item.createdAt = new Date().toISOString();
+        item.updatedAt = new Date().toISOString();
+        this.data[collection].push(item);
+        this.save();
+        return item;
+      },
+      
+      update(collection, id, updates) {
+        const index = this.data[collection].findIndex(item => item.id === id);
+        if (index !== -1) {
+          this.data[collection][index] = { ...this.data[collection][index], ...updates, updatedAt: new Date().toISOString() };
+          this.save();
+          return this.data[collection][index];
+        }
+        return null;
+      },
+      
+      delete(collection, id) {
+        const index = this.data[collection].findIndex(item => item.id === id);
+        if (index !== -1) {
+          this.data[collection].splice(index, 1);
+          this.save();
+          return true;
+        }
+        return false;
+      },
+      
+      get(collection, id) {
+        return this.data[collection].find(item => item.id === id);
+      },
+      
+      getAll(collection) {
+        return this.data[collection];
+      }
+    };
+    
+    Store.init();
+    
+    // ==================== APP STATE ====================
+    let currentPage = 'dashboard';
+    let currentTheme = localStorage.getItem('theme') || 'light';
+    let drawerOpen = false;
+    
+    let dialogs = {
+      customer: { open: false, editing: null },
+      repair: { open: false, editing: null },
+      inventory: { open: false, editing: null },
+      invoice: { open: false, editing: null },
+      expense: { open: false, editing: null },
+      delivery: { open: false, repair: null },
+      payment: { open: false, debt: null },
+      view: { open: false, type: null, data: null },
+      confirm: { open: false, title: '', message: '', onConfirm: null },
+      export: { open: false }
+    };
+    
+    // ==================== UTILITY FUNCTIONS ====================
+    function formatNumber(num) {
+      return (num || 0).toLocaleString('ar-SA');
+    }
+    
+    function formatDate(date) {
+      if (!date) return '-';
+      return new Date(date).toLocaleDateString('ar-SA');
+    }
+    
+    function getCustomerName(customerId) {
+      const customer = Store.data.customers.find(c => c.id === customerId);
+      return customer?.name || 'غير معروف';
+    }
+    
+    function getCustomerPhone(customerId) {
+      const customer = Store.data.customers.find(c => c.id === customerId);
+      return customer?.phone || '';
+    }
+    
+    const statusOptions = [
+      { value: 'PENDING', label: 'قيد الانتظار', color: 'bg-yellow-500' },
+      { value: 'DIAGNOSING', label: 'قيد التشخيص', color: 'bg-blue-500' },
+      { value: 'WAITING_PARTS', label: 'في انتظار القطع', color: 'bg-orange-500' },
+      { value: 'IN_PROGRESS', label: 'قيد الإصلاح', color: 'bg-purple-500' },
+      { value: 'COMPLETED', label: 'تم الإصلاح', color: 'bg-green-500' },
+      { value: 'DELIVERED', label: 'تم التسليم', color: 'bg-teal-500' },
+      { value: 'CANCELLED', label: 'ملغي', color: 'bg-red-500' }
+    ];
+    
+    const deviceTypes = ['iPhone', 'Samsung', 'Huawei', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'Nokia', 'LG', 'HTC', 'Sony', 'Motorola', 'أخرى'];
+    const expenseCategories = ['إيجار', 'كهرباء', 'ماء', 'رواتب', 'مشتريات', 'صيانة', 'نقل', 'أخرى'];
+    
+    // ==================== EXPORT FUNCTIONS ====================
+    function exportToExcel(type) {
+      const date = new Date().toISOString().split('T')[0];
+      let wb = XLSX.utils.book_new();
+      
+      if (type === 'all' || type === 'customers') {
+        const customersData = Store.data.customers.map((c, i) => ({
+          '#': i + 1,
+          'الاسم': c.name,
+          'الهاتف': c.phone,
+          'البريد الإلكتروني': c.email || '-',
+          'العنوان': c.address || '-',
+          'ملاحظات': c.notes || '-'
+        }));
+        const ws = XLSX.utils.json_to_sheet(customersData);
+        XLSX.utils.book_append_sheet(wb, ws, 'العملاء');
+      }
+      
+      if (type === 'all' || type === 'repairs') {
+        const repairsData = Store.data.repairs.map((r, i) => {
+          const statusInfo = statusOptions.find(s => s.value === r.status);
+          return {
+            '#': i + 1,
+            'العميل': getCustomerName(r.customerId),
+            'نوع الجهاز': r.deviceType,
+            'موديل الجهاز': r.deviceModel,
+            'المشكلة': r.problem,
+            'التشخيص': r.diagnosis || '-',
+            'الحالة': statusInfo?.label || r.status,
+            'تكلفة الصيانة': r.maintenanceCost || 0,
+            'السعر النهائي': r.finalCost || 0,
+            'العربون': r.deposit || 0,
+            'المدفوع': r.paidAmount || 0,
+            'الدين': r.debt || 0,
+            'تاريخ الإدخال': formatDate(r.entryDate || r.createdAt),
+            'تاريخ التسليم': formatDate(r.deliveredAt)
+          };
+        });
+        const ws = XLSX.utils.json_to_sheet(repairsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'الصيانة');
+      }
+      
+      if (type === 'all' || type === 'inventory') {
+        const inventoryData = Store.data.inventory.map((item, i) => ({
+          '#': i + 1,
+          'اسم القطعة': item.name,
+          'الفئة': item.category,
+          'الكمية': item.quantity,
+          'سعر الشراء': item.costPrice,
+          'سعر البيع': item.sellingPrice
+        }));
+        const ws = XLSX.utils.json_to_sheet(inventoryData);
+        XLSX.utils.book_append_sheet(wb, ws, 'المخزون');
+      }
+      
+      if (type === 'all' || type === 'invoices') {
+        const invoicesData = Store.data.invoices.map((inv, i) => ({
+          '#': i + 1,
+          'رقم الفاتورة': inv.invoiceNumber,
+          'العميل': getCustomerName(inv.customerId),
+          'الإجمالي': inv.total,
+          'المدفوع': inv.paid,
+          'الحالة': inv.status === 'PAID' ? 'مدفوعة' : inv.status === 'PARTIAL' ? 'جزئي' : 'معلقة',
+          'التاريخ': formatDate(inv.createdAt)
+        }));
+        const ws = XLSX.utils.json_to_sheet(invoicesData);
+        XLSX.utils.book_append_sheet(wb, ws, 'الفواتير');
+      }
+      
+      if (type === 'all' || type === 'expenses') {
+        const expensesData = Store.data.expenses.map((e, i) => ({
+          '#': i + 1,
+          'الفئة': e.category,
+          'الوصف': e.description,
+          'المبلغ': e.amount,
+          'التاريخ': formatDate(e.date)
+        }));
+        const ws = XLSX.utils.json_to_sheet(expensesData);
+        XLSX.utils.book_append_sheet(wb, ws, 'المصاريف');
+      }
+      
+      const fileName = type === 'all' ? `تقرير_شامل_${date}.xlsx` : `تقرير_${type}_${date}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      closeExportDialog();
+    }
+    
+    function exportToPDF(type) {
+      const date = new Date().toLocaleDateString('ar-SA');
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const totalProfit = delivered.reduce((sum, r) => sum + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+      const totalDebts = delivered.reduce((sum, r) => sum + (r.debt || 0), 0);
+      const totalExpenses = Store.data.expenses.reduce((sum, e) => sum + e.amount, 0);
+      
+      let html = `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <title>تقرير - نظام صيانة الموبايل</title>
+          <style>
+            * { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+            body { direction: rtl; padding: 20px; background: white; color: black; }
+            h1 { text-align: center; color: #2980b9; margin-bottom: 5px; border-bottom: 2px solid #2980b9; padding-bottom: 10px; }
+            .date { text-align: center; color: #666; margin-bottom: 20px; }
+            .summary { background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+            .summary h3 { margin: 0 0 10px 0; color: #2980b9; }
+            .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .summary-item { text-align: center; }
+            .summary-item .value { font-size: 1.5rem; font-weight: bold; color: #2980b9; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            th { background-color: #2980b9; color: white; padding: 12px; text-align: center; }
+            td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .page-break { page-break-after: always; }
+            @media print { .page-break { page-break-after: always; } }
+          </style>
+        </head>
+        <body>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 24px;">نظام محاسبة صيانة الموبايل</h1>
+            <p style="color: #666; margin: 5px 0;">التاريخ: ${date}</p>
+          </div>
+          <div class="summary">
+            <h3>ملخص عام</h3>
+            <div class="summary-grid">
+              <div class="summary-item"><div class="value">${formatNumber(totalProfit)} د.أ</div><div>إجمالي الأرباح</div></div>
+              <div class="summary-item"><div class="value">${formatNumber(totalDebts)} د.أ</div><div>إجمالي الديون</div></div>
+              <div class="summary-item"><div class="value">${formatNumber(totalExpenses)} د.أ</div><div>إجمالي المصاريف</div></div>
+            </div>
+          </div>
+      `;
+      
+      if (type === 'all' || type === 'customers') {
+        html += `<h1>تقرير العملاء</h1><p class="date">عدد العملاء: ${Store.data.customers.length}</p><table><thead><tr><th>#</th><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>العنوان</th></tr></thead><tbody>${Store.data.customers.map((c, i) => `<tr><td>${i + 1}</td><td>${c.name}</td><td>${c.phone}</td><td>${c.email || '-'}</td><td>${c.address || '-'}</td></tr>`).join('')}</tbody></table>${type === 'all' ? '<div class="page-break"></div>' : ''}`;
+      }
+      
+      if (type === 'all' || type === 'repairs') {
+        html += `<h1>تقرير طلبات الصيانة</h1><p class="date">عدد الطلبات: ${Store.data.repairs.length}</p><table><thead><tr><th>#</th><th>التاريخ</th><th>العميل</th><th>الجهاز</th><th>المشكلة</th><th>الحالة</th><th>السعر</th><th>المدفوع</th><th>الدين</th></tr></thead><tbody>${Store.data.repairs.map((r, i) => `<tr><td>${i + 1}</td><td>${formatDate(r.entryDate || r.createdAt)}</td><td>${getCustomerName(r.customerId)}</td><td>${r.deviceType} - ${r.deviceModel}</td><td>${r.problem.substring(0, 30)}${r.problem.length > 30 ? '...' : ''}</td><td>${statusOptions.find(s => s.value === r.status)?.label || r.status}</td><td>${r.finalCost ? formatNumber(r.finalCost) + ' د.أ' : '-'}</td><td>${formatNumber(r.paidAmount || 0)} د.أ</td><td>${formatNumber(r.debt || 0)} د.أ</td></tr>`).join('')}</tbody></table>${type === 'all' ? '<div class="page-break"></div>' : ''}`;
+      }
+      
+      if (type === 'all' || type === 'inventory') {
+        html += `<h1>تقرير المخزون</h1><p class="date">عدد العناصر: ${Store.data.inventory.length}</p><table><thead><tr><th>#</th><th>اسم القطعة</th><th>الفئة</th><th>الكمية</th><th>سعر الشراء</th><th>سعر البيع</th></tr></thead><tbody>${Store.data.inventory.map((item, i) => `<tr><td>${i + 1}</td><td>${item.name}</td><td>${item.category}</td><td>${item.quantity}</td><td>${formatNumber(item.costPrice)} د.أ</td><td>${formatNumber(item.sellingPrice)} د.أ</td></tr>`).join('')}</tbody></table>${type === 'all' ? '<div class="page-break"></div>' : ''}`;
+      }
+      
+      if (type === 'all' || type === 'invoices') {
+        html += `<h1>تقرير الفواتير</h1><table><thead><tr><th>#</th><th>رقم الفاتورة</th><th>العميل</th><th>الإجمالي</th><th>المدفوع</th><th>الحالة</th></tr></thead><tbody>${Store.data.invoices.map((inv, i) => `<tr><td>${i + 1}</td><td>${inv.invoiceNumber}</td><td>${getCustomerName(inv.customerId)}</td><td>${formatNumber(inv.total)} د.أ</td><td>${formatNumber(inv.paid)} د.أ</td><td>${inv.status === 'PAID' ? 'مدفوعة' : inv.status === 'PARTIAL' ? 'جزئي' : 'معلقة'}</td></tr>`).join('')}</tbody></table>${type === 'all' ? '<div class="page-break"></div>' : ''}`;
+      }
+      
+      if (type === 'all' || type === 'expenses') {
+        html += `<h1>تقرير المصاريف</h1><p class="date">الإجمالي: ${formatNumber(totalExpenses)} د.أ</p><table><thead><tr><th>#</th><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th>التاريخ</th></tr></thead><tbody>${Store.data.expenses.map((e, i) => `<tr><td>${i + 1}</td><td>${e.category}</td><td>${e.description}</td><td>${formatNumber(e.amount)} د.أ</td><td>${formatDate(e.date)}</td></tr>`).join('')}</tbody></table>`;
+      }
+      
+      html += `</body></html>`;
+      
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 500);
+      } else {
+        alert('يرجى السماح بالنوافذ المنبثقة للتصدير');
+      }
+      
+      closeExportDialog();
+    }
+    
+    // ==================== RENDER FUNCTIONS ====================
+    function render() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        ${renderMobileHeader()}
+        ${renderDrawer()}
+        ${renderDesktopSidebar()}
+        <main class="md:mr-64 pt-16 md:pt-0 pb-4 md:pb-0 min-h-screen">
+          <div class="p-3 md:p-6 lg:p-8">
+            ${renderPage()}
+          </div>
+        </main>
+        ${renderDialogs()}
+      `;
+      
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+      
+      attachEventListeners();
+    }
+    
+    function renderMobileHeader() {
+      const pageInfo = {
+        'dashboard': { title: 'لوحة التحكم', icon: 'layout-dashboard' },
+        'customers': { title: 'العملاء', icon: 'users' },
+        'repairs': { title: 'طلبات الصيانة', icon: 'wrench' },
+        'inventory': { title: 'المخزون', icon: 'package' },
+        'invoices': { title: 'الفواتير', icon: 'file-text' },
+        'expenses': { title: 'المصاريف', icon: 'receipt' },
+        'debts': { title: 'الديون', icon: 'credit-card' },
+        'reports': { title: 'التقارير', icon: 'trending-up' },
+        'backup': { title: 'النسخ الاحتياطي', icon: 'database' }
+      };
+      
+      const current = pageInfo[currentPage] || pageInfo['dashboard'];
+      
+      return `
+        <header class="mobile-header">
+          <button onclick="toggleDrawer()" class="btn btn-ghost btn-icon">
+            <i data-lucide="${drawerOpen ? 'x' : 'menu'}" class="h-6 w-6"></i>
+          </button>
+          <div class="flex items-center gap-2">
+            <i data-lucide="${current.icon}" class="h-5 w-5 text-primary"></i>
+            <h1 class="font-bold text-lg">${current.title}</h1>
+          </div>
+          <button onclick="toggleTheme()" class="btn btn-ghost btn-icon">
+            <i data-lucide="${currentTheme === 'dark' ? 'sun' : 'moon'}" class="h-5 w-5"></i>
+          </button>
+        </header>
+      `;
+    }
+    
+    function renderDrawer() {
+      const navItems = [
+        { id: 'dashboard', label: 'الرئيسية', icon: 'layout-dashboard' },
+        { id: 'repairs', label: 'الصيانة', icon: 'wrench' },
+        { id: 'customers', label: 'العملاء', icon: 'users' },
+        { id: 'inventory', label: 'المخزون', icon: 'package' },
+        { id: 'invoices', label: 'الفواتير', icon: 'file-text' },
+        { id: 'expenses', label: 'المصاريف', icon: 'receipt' },
+        { id: 'debts', label: 'الديون', icon: 'credit-card' },
+        { id: 'reports', label: 'التقارير', icon: 'trending-up' },
+        { id: 'backup', label: 'النسخ الاحتياطي', icon: 'database' }
+      ];
+      
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const totalProfit = delivered.reduce((sum, r) => sum + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+      const totalDebts = delivered.reduce((sum, r) => sum + (r.debt || 0), 0);
+      const totalExpenses = Store.data.expenses.reduce((sum, e) => sum + e.amount, 0);
+      const totalRevenue = Store.data.invoices.filter(i => i.status === 'PAID').reduce((sum, i) => sum + i.paid, 0);
+      const netProfit = totalProfit + totalRevenue - totalExpenses;
+      
+      return `
+        <div class="drawer-overlay ${drawerOpen ? 'open' : ''}" onclick="closeDrawer()"></div>
+        <div class="drawer ${drawerOpen ? 'open' : ''}">
+          <div class="flex flex-col h-full">
+            <!-- Header -->
+            <div class="flex items-center gap-3 p-4 border-b border-border">
+              <div class="p-2 bg-primary rounded-xl">
+                <i data-lucide="smartphone" class="h-6 w-6 text-primary-foreground"></i>
+              </div>
+              <div>
+                <h1 class="font-bold text-lg">صيانة موبايل</h1>
+                <p class="text-xs text-muted-foreground">نظام المحاسبة</p>
+              </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="p-3 border-b border-border">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="p-2 bg-green-50 dark:bg-green-950/20 rounded-lg text-center">
+                  <p class="text-xs text-muted-foreground">الأرباح</p>
+                  <p class="font-bold text-green-600 text-sm">${formatNumber(netProfit)} د.أ</p>
+                </div>
+                <div class="p-2 bg-red-50 dark:bg-red-950/20 rounded-lg text-center">
+                  <p class="text-xs text-muted-foreground">الديون</p>
+                  <p class="font-bold text-red-600 text-sm">${formatNumber(totalDebts)} د.أ</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="flex-1 overflow-y-auto p-3">
+              <div class="space-y-1">
+                ${navItems.map(item => `
+                  <button onclick="navigate('${item.id}')" class="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-right transition-colors ${currentPage === item.id ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-foreground'}">
+                    <i data-lucide="${item.icon}" class="h-5 w-5"></i>
+                    <span class="font-medium">${item.label}</span>
+                    ${currentPage === item.id ? '<i data-lucide="chevron-left" class="h-4 w-4 mr-auto"></i>' : ''}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="p-3 border-t border-border space-y-2">
+              <button onclick="openExportDialog()" class="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-right transition-colors hover:bg-secondary">
+                <i data-lucide="download" class="h-5 w-5 text-green-500"></i>
+                <span class="font-medium">تصدير البيانات</span>
+              </button>
+              <button onclick="toggleTheme()" class="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-right transition-colors hover:bg-secondary">
+                <i data-lucide="${currentTheme === 'dark' ? 'sun' : 'moon'}" class="h-5 w-5 ${currentTheme === 'dark' ? 'text-yellow-500' : 'text-blue-500'}"></i>
+                <span class="font-medium">${currentTheme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}</span>
+              </button>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-3 border-t border-border">
+              <p class="text-xs text-muted-foreground text-center">جميع الحقوق محفوظة © 2024</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderDesktopSidebar() {
+      const navItems = [
+        { id: 'dashboard', label: 'الرئيسية', icon: 'layout-dashboard' },
+        { id: 'repairs', label: 'الصيانة', icon: 'wrench' },
+        { id: 'customers', label: 'العملاء', icon: 'users' },
+        { id: 'inventory', label: 'المخزون', icon: 'package' },
+        { id: 'invoices', label: 'الفواتير', icon: 'file-text' },
+        { id: 'expenses', label: 'المصاريف', icon: 'receipt' },
+        { id: 'debts', label: 'الديون', icon: 'credit-card' },
+        { id: 'reports', label: 'التقارير', icon: 'trending-up' },
+        { id: 'backup', label: 'النسخ الاحتياطي', icon: 'database' }
+      ];
+      
+      return `
+        <aside class="hidden md:flex fixed top-0 right-0 z-40 h-full w-64 bg-card border-l border-border flex-col">
+          <div class="flex items-center gap-3 p-4 border-b border-border">
+            <div class="p-2 bg-primary rounded-xl">
+              <i data-lucide="smartphone" class="h-6 w-6 text-primary-foreground"></i>
+            </div>
+            <div>
+              <h1 class="font-bold text-lg">صيانة موبايل</h1>
+              <p class="text-xs text-muted-foreground">نظام المحاسبة</p>
+            </div>
+          </div>
+          <div class="flex-1 p-3 overflow-y-auto">
+            <div class="space-y-1">
+              ${navItems.map(item => `
+                <button onclick="navigate('${item.id}')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-right transition-colors ${currentPage === item.id ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-foreground'}">
+                  <i data-lucide="${item.icon}" class="h-5 w-5"></i>
+                  <span class="font-medium">${item.label}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="p-3 border-t border-border space-y-2">
+            <button onclick="openExportDialog()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-right transition-colors hover:bg-secondary">
+              <i data-lucide="download" class="h-5 w-5 text-green-500"></i>
+              <span class="font-medium">تصدير البيانات</span>
+            </button>
+            <button onclick="toggleTheme()" class="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+              <i data-lucide="${currentTheme === 'dark' ? 'sun' : 'moon'}" class="h-5 w-5 ${currentTheme === 'dark' ? 'text-yellow-500' : 'text-blue-500'}"></i>
+              <span class="font-medium">${currentTheme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}</span>
+            </button>
+            <p class="text-xs text-muted-foreground text-center">جميع الحقوق محفوظة © 2024</p>
+          </div>
+        </aside>
+      `;
+    }
+    
+    function toggleDrawer() {
+      drawerOpen = !drawerOpen;
+      render();
+    }
+    
+    function closeDrawer() {
+      drawerOpen = false;
+      render();
+    }
+    
+    function renderPage() {
+      switch (currentPage) {
+        case 'dashboard': return renderDashboard();
+        case 'customers': return renderCustomers();
+        case 'repairs': return renderRepairs();
+        case 'inventory': return renderInventory();
+        case 'invoices': return renderInvoices();
+        case 'expenses': return renderExpenses();
+        case 'debts': return renderDebts();
+        case 'reports': return renderReports();
+        case 'backup': return renderBackup();
+        default: return renderDashboard();
+      }
+    }
+    
+    // ==================== DASHBOARD ====================
+    function renderDashboard() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.filter(r => r.finalCost && r.maintenanceCost).reduce((sum, r) => sum + (r.finalCost - r.maintenanceCost), 0);
+      const debts = delivered.reduce((sum, r) => sum + (r.debt || 0), 0);
+      const expenses = Store.data.expenses.reduce((sum, e) => sum + e.amount, 0);
+      const revenue = Store.data.invoices.filter(i => i.status === 'PAID').reduce((sum, i) => sum + i.paid, 0);
+      const netProfit = profit + revenue - expenses;
+      const pending = Store.data.repairs.filter(r => ['PENDING', 'DIAGNOSING', 'IN_PROGRESS'].includes(r.status)).length;
+      const completed = Store.data.repairs.filter(r => ['COMPLETED', 'DELIVERED'].includes(r.status)).length;
+      const lowStock = Store.data.inventory.filter(i => i.quantity <= i.minQuantity).length;
+      const statusCounts = {};
+      Store.data.repairs.forEach(r => statusCounts[r.status] = (statusCounts[r.status] || 0) + 1);
+      const recent = [...Store.data.repairs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+      
+      return `
+        <div class="space-y-4 md:space-y-6 max-w-7xl mx-auto">
+          <div class="hidden md:flex justify-between items-center">
+            <div>
+              <h1 class="text-2xl md:text-3xl font-bold">لوحة التحكم</h1>
+              <p class="text-sm md:text-base text-muted-foreground">مرحباً بك في نظام محاسبة صيانة الموبايل</p>
+            </div>
+            <button onclick="openExportDialog()" class="btn btn-success gap-2">
+              <i data-lucide="download" class="h-4 w-4"></i>
+              تصدير البيانات
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+            <div class="card"><div class="card-content p-3 md:p-4"><div class="flex items-center gap-2"><div class="p-1.5 md:p-2 rounded-lg bg-emerald-500"><i data-lucide="trending-up" class="h-4 w-4 md:h-5 md:w-5 text-white"></i></div><div class="flex-1"><p class="text-xs md:text-sm text-muted-foreground">أرباح الصيانة</p><p class="text-base md:text-xl font-bold text-emerald-600">${formatNumber(profit)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content p-3 md:p-4"><div class="flex items-center gap-2"><div class="p-1.5 md:p-2 rounded-lg ${netProfit >= 0 ? 'bg-blue-500' : 'bg-rose-500'}"><i data-lucide="dollar-sign" class="h-4 w-4 md:h-5 md:w-5 text-white"></i></div><div class="flex-1"><p class="text-xs md:text-sm text-muted-foreground">صافي الربح</p><p class="text-base md:text-xl font-bold ${netProfit >= 0 ? 'text-blue-600' : 'text-rose-600'}">${formatNumber(netProfit)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content p-3 md:p-4"><div class="flex items-center gap-2"><div class="p-1.5 md:p-2 rounded-lg ${debts > 0 ? 'bg-rose-500' : 'bg-green-500'}"><i data-lucide="alert-triangle" class="h-4 w-4 md:h-5 md:w-5 text-white"></i></div><div class="flex-1"><p class="text-xs md:text-sm text-muted-foreground">ديون العملاء</p><p class="text-base md:text-xl font-bold ${debts > 0 ? 'text-rose-600' : 'text-green-600'}">${formatNumber(debts)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content p-3 md:p-4"><div class="flex items-center gap-2"><div class="p-1.5 md:p-2 rounded-lg bg-amber-500"><i data-lucide="calculator" class="h-4 w-4 md:h-5 md:w-5 text-white"></i></div><div class="flex-1"><p class="text-xs md:text-sm text-muted-foreground">المصاريف</p><p class="text-base md:text-xl font-bold text-amber-600">${formatNumber(expenses)} د.أ</p></div></div></div></div>
+          </div>
+          
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="navigate('customers')" class="btn btn-outline h-auto flex-col gap-1 py-3"><div class="p-2 rounded-lg bg-primary"><i data-lucide="users" class="h-4 w-4 text-white"></i></div><span class="text-xs font-medium">العملاء</span><span class="text-xs font-bold">${Store.data.customers.length}</span></button>
+            <button onclick="navigate('repairs')" class="btn btn-outline h-auto flex-col gap-1 py-3"><div class="p-2 rounded-lg bg-blue-500"><i data-lucide="wrench" class="h-4 w-4 text-white"></i></div><span class="text-xs font-medium">الصيانة</span><span class="text-xs font-bold">${Store.data.repairs.length}</span></button>
+            <button onclick="navigate('inventory')" class="btn btn-outline h-auto flex-col gap-1 py-3"><div class="p-2 rounded-lg bg-orange-500"><i data-lucide="package" class="h-4 w-4 text-white"></i></div><span class="text-xs font-medium">المخزون</span><span class="text-xs font-bold">${Store.data.inventory.length}</span></button>
+            <button onclick="navigate('invoices')" class="btn btn-outline h-auto flex-col gap-1 py-3"><div class="p-2 rounded-lg bg-green-500"><i data-lucide="file-text" class="h-4 w-4 text-white"></i></div><span class="text-xs font-medium">الفواتير</span><span class="text-xs font-bold">${Store.data.invoices.length}</span></button>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+            <div class="card"><div class="card-content p-3 md:p-4 text-center"><i data-lucide="check-circle" class="h-6 w-6 md:h-8 md:w-8 mx-auto text-green-500 mb-2"></i><p class="text-xl md:text-2xl font-bold">${completed}</p><p class="text-xs md:text-sm text-muted-foreground">مكتملة</p></div></div>
+            <div class="card"><div class="card-content p-3 md:p-4 text-center"><i data-lucide="clock" class="h-6 w-6 md:h-8 md:w-8 mx-auto text-yellow-500 mb-2"></i><p class="text-xl md:text-2xl font-bold">${pending}</p><p class="text-xs md:text-sm text-muted-foreground">قيد المعالجة</p></div></div>
+            <div class="card"><div class="card-content p-3 md:p-4 text-center"><i data-lucide="trending-up" class="h-6 w-6 md:h-8 md:w-8 mx-auto text-purple-500 mb-2"></i><p class="text-xl md:text-2xl font-bold">${formatNumber(Store.data.repairs.filter(r => r.finalCost).reduce((s, r) => s + r.finalCost, 0))}</p><p class="text-xs md:text-sm text-muted-foreground">مبيعات (د.أ)</p></div></div>
+            <div class="card"><div class="card-content p-3 md:p-4 text-center"><i data-lucide="dollar-sign" class="h-6 w-6 md:h-8 md:w-8 mx-auto text-teal-500 mb-2"></i><p class="text-xl md:text-2xl font-bold">${formatNumber(Store.data.invoices.reduce((s, i) => s + i.paid, 0))}</p><p class="text-xs md:text-sm text-muted-foreground">إيرادات (د.أ)</p></div></div>
+          </div>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="card"><div class="card-header pb-2"><h3 class="font-bold">حالة الطلبات</h3></div><div class="card-content space-y-2">${Object.keys(statusCounts).length > 0 ? Object.entries(statusCounts).map(([status, count]) => { const s = statusOptions.find(o => o.value === status); const p = Store.data.repairs.length > 0 ? (count / Store.data.repairs.length) * 100 : 0; return `<div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full ${s?.color}"></div><span class="flex-1 text-sm">${s?.label}</span><span class="font-bold text-sm">${count}</span><div class="w-16 md:w-24 bg-secondary rounded-full h-1.5"><div class="h-1.5 rounded-full ${s?.color}" style="width: ${p}%"></div></div></div>`; }).join('') : '<p class="text-muted-foreground text-center py-4 text-sm">لا توجد طلبات</p>'}</div></div>
+            
+            <div class="card"><div class="card-header pb-2 flex justify-between items-center"><h3 class="font-bold">آخر الطلبات</h3><button onclick="navigate('repairs')" class="btn btn-ghost btn-sm text-xs">عرض الكل</button></div><div class="card-content space-y-2">${recent.map(r => { const s = statusOptions.find(o => o.value === r.status); const p = r.status === 'DELIVERED' && r.finalCost && r.maintenanceCost ? r.finalCost - r.maintenanceCost : null; return `<div class="p-3 border rounded-lg"><div class="flex items-start justify-between mb-2 gap-2"><div class="flex-1 min-w-0"><p class="font-medium text-sm truncate">${r.deviceType} - ${r.deviceModel}</p><p class="text-xs text-muted-foreground truncate">${r.problem}</p></div><span class="badge text-white text-xs whitespace-nowrap ${s?.color}">${s?.label}</span></div>${p !== null ? `<div class="flex items-center gap-2 mt-2 pt-2 border-t"><i data-lucide="trending-up" class="h-3.5 w-3.5 text-green-500"></i><span class="text-xs text-muted-foreground">الربح:</span><span class="font-bold text-green-600 text-sm">${formatNumber(p)} د.أ</span></div>` : ''}</div>`; }).join('') || '<p class="text-muted-foreground text-center py-4 text-sm">لا توجد طلبات</p>'}</div></div>
+          </div>
+          
+          ${lowStock > 0 ? `<div class="card border-red-200 bg-red-50 dark:bg-red-950/20"><div class="card-content p-4 flex items-center gap-4"><div class="p-2 bg-red-500 rounded-lg"><i data-lucide="alert-triangle" class="h-5 w-5 text-white"></i></div><div class="flex-1"><p class="font-medium text-red-600">تنبيه المخزون</p><p class="text-sm text-red-500">يوجد ${lowStock} منتج بكمية منخفضة</p></div><button onclick="navigate('inventory')" class="btn btn-primary btn-sm">عرض</button></div></div>` : ''}
+          ${debts > 0 ? `<div class="card border-orange-200 bg-orange-50 dark:bg-orange-950/20"><div class="card-content p-4 flex items-center gap-4"><div class="p-2 bg-orange-500 rounded-lg"><i data-lucide="credit-card" class="h-5 w-5 text-white"></i></div><div class="flex-1"><p class="font-medium text-orange-600">تنبيه الديون</p><p class="text-sm text-orange-500">يوجد ديون مستحقة بقيمة ${formatNumber(debts)} د.أ</p></div><button onclick="navigate('debts')" class="btn btn-primary btn-sm">عرض</button></div></div>` : ''}
+        </div>
+      `;
+    }
+    
+    // ==================== CUSTOMERS ====================
+    function renderCustomers() {
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div><h1 class="text-3xl font-bold">العملاء</h1><p class="text-muted-foreground">إدارة بيانات العملاء</p></div>
+            <div class="flex gap-2">
+              <button onclick="openExportDialog('customers')" class="btn btn-outline gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير</button>
+              <button onclick="openCustomerDialog()" class="btn btn-primary gap-2"><i data-lucide="plus" class="h-4 w-4"></i>عميل جديد</button>
+            </div>
+          </div>
+          <div class="card"><div class="card-content pt-6"><div class="relative"><i data-lucide="search" class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"></i><input type="text" id="customerSearch" placeholder="البحث..." class="input pr-9" oninput="filterCustomers()"></div></div></div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">العملاء (${Store.data.customers.length})</h3></div><div class="card-content"><div id="customersList" class="table-container">${renderCustomersTable(Store.data.customers)}</div></div></div>
+        </div>
+      `;
+    }
+    
+    function renderCustomersTable(customers) {
+      if (customers.length === 0) return `<div class="text-center py-12 text-muted-foreground"><i data-lucide="users" class="h-12 w-12 mx-auto mb-4 opacity-50"></i><p>لا يوجد عملاء</p></div>`;
+      return `<table class="table"><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>العنوان</th><th class="text-left">الإجراءات</th></tr></thead><tbody>${customers.map(c => `<tr><td class="font-medium">${c.name}</td><td dir="ltr">${c.phone}</td><td>${c.email || '-'}</td><td>${c.address || '-'}</td><td><div class="flex gap-1"><button onclick="openCustomerDialog('${c.id}')" class="btn btn-ghost btn-icon"><i data-lucide="edit" class="h-4 w-4"></i></button><button onclick="confirmDelete('customer', '${c.id}')" class="btn btn-ghost btn-icon"><i data-lucide="trash-2" class="h-4 w-4 text-red-500"></i></button></div></td></tr>`).join('')}</tbody></table>`;
+    }
+    
+    function filterCustomers() {
+      const search = document.getElementById('customerSearch').value.toLowerCase();
+      const filtered = Store.data.customers.filter(c => c.name.toLowerCase().includes(search) || c.phone.includes(search));
+      document.getElementById('customersList').innerHTML = renderCustomersTable(filtered);
+      lucide.createIcons();
+    }
+    
+    // ==================== REPAIRS ====================
+    function renderRepairs() {
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div><h1 class="text-3xl font-bold">طلبات الصيانة</h1><p class="text-muted-foreground">إدارة طلبات الصيانة</p></div>
+            <div class="flex gap-2">
+              <button onclick="openExportDialog('repairs')" class="btn btn-outline gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير</button>
+              <button onclick="openRepairDialog()" class="btn btn-primary gap-2"><i data-lucide="plus" class="h-4 w-4"></i>طلب جديد</button>
+            </div>
+          </div>
+          <div class="card"><div class="card-content pt-6"><div class="flex flex-col sm:flex-row gap-4"><div class="relative flex-1"><i data-lucide="search" class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"></i><input type="text" id="repairSearch" placeholder="البحث..." class="input pr-9" oninput="filterRepairs()"></div><select id="repairStatusFilter" class="select w-full sm:w-48" onchange="filterRepairs()"><option value="all">جميع الحالات</option>${statusOptions.map(s => `<option value="${s.value}">${s.label}</option>`).join('')}</select></div></div></div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">الطلبات (${Store.data.repairs.length})</h3></div><div class="card-content"><div id="repairsList" class="table-container">${renderRepairsTable(Store.data.repairs)}</div></div></div>
+        </div>
+      `;
+    }
+    
+    function renderRepairsTable(repairs) {
+      if (repairs.length === 0) return `<div class="text-center py-12 text-muted-foreground"><i data-lucide="wrench" class="h-12 w-12 mx-auto mb-4 opacity-50"></i><p>لا توجد طلبات</p></div>`;
+      // Sort by entry date (newest first)
+      const sortedRepairs = [...repairs].sort((a, b) => new Date(b.entryDate || b.createdAt) - new Date(a.entryDate || a.createdAt));
+      return `<table class="table"><thead><tr><th>التاريخ</th><th>العميل</th><th>الجهاز</th><th>المشكلة</th><th>الحالة</th><th>السعر</th><th>الربح</th><th class="text-left">الإجراءات</th></tr></thead><tbody>${sortedRepairs.map(r => { const s = statusOptions.find(o => o.value === r.status); const p = r.status === 'DELIVERED' && r.finalCost && r.maintenanceCost ? r.finalCost - r.maintenanceCost : null; const pp = r.status !== 'DELIVERED' && r.finalCost && r.maintenanceCost ? r.finalCost - r.maintenanceCost : null; return `<tr><td class="text-sm">${formatDate(r.entryDate || r.createdAt)}</td><td class="font-medium">${getCustomerName(r.customerId)}</td><td><div><p>${r.deviceType}</p><p class="text-xs text-muted-foreground">${r.deviceModel}</p></div></td><td class="max-w-[200px] truncate">${r.problem}</td><td><select onchange="handleStatusChange('${r.id}', this.value)" class="select w-32 h-8 text-sm">${statusOptions.map(o => `<option value="${o.value}" ${r.status === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}</select></td><td>${r.finalCost ? formatNumber(r.finalCost) + ' د.أ' : '-'}</td><td>${p !== null ? `<span class="text-green-600 font-medium">${formatNumber(p)} د.أ</span>` : pp !== null ? `<span class="text-muted-foreground text-sm">(${formatNumber(pp)} محتمل)</span>` : '-'}</td><td><div class="flex gap-1"><button onclick="viewRepair('${r.id}')" class="btn btn-ghost btn-icon"><i data-lucide="eye" class="h-4 w-4"></i></button><button onclick="openRepairDialog('${r.id}')" class="btn btn-ghost btn-icon"><i data-lucide="edit" class="h-4 w-4"></i></button><button onclick="confirmDelete('repair', '${r.id}')" class="btn btn-ghost btn-icon"><i data-lucide="trash-2" class="h-4 w-4 text-red-500"></i></button></div></td></tr>`; }).join('')}</tbody></table>`;
+    }
+    
+    function filterRepairs() {
+      const search = document.getElementById('repairSearch').value.toLowerCase();
+      const status = document.getElementById('repairStatusFilter').value;
+      let filtered = Store.data.repairs;
+      if (search) filtered = filtered.filter(r => r.deviceModel.toLowerCase().includes(search) || r.problem.toLowerCase().includes(search) || getCustomerName(r.customerId).toLowerCase().includes(search));
+      if (status !== 'all') filtered = filtered.filter(r => r.status === status);
+      document.getElementById('repairsList').innerHTML = renderRepairsTable(filtered);
+      lucide.createIcons();
+    }
+    
+    function handleStatusChange(id, newStatus) {
+      const repair = Store.get('repairs', id);
+      if (!repair) return;
+      if (newStatus === 'DELIVERED' && repair.status !== 'DELIVERED') { dialogs.delivery = { open: true, repair: repair }; render(); }
+      else { const updates = { status: newStatus }; if (newStatus === 'COMPLETED') updates.completedAt = new Date().toISOString(); Store.update('repairs', id, updates); render(); }
+    }
+    
+    // ==================== INVENTORY ====================
+    function renderInventory() {
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div><h1 class="text-3xl font-bold">المخزون</h1><p class="text-muted-foreground">إدارة قطع الغيار</p></div>
+            <div class="flex gap-2">
+              <button onclick="openExportDialog('inventory')" class="btn btn-outline gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير</button>
+              <button onclick="openInventoryDialog()" class="btn btn-primary gap-2"><i data-lucide="plus" class="h-4 w-4"></i>إضافة</button>
+            </div>
+          </div>
+          <div class="card"><div class="card-content pt-6"><div class="relative"><i data-lucide="search" class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"></i><input type="text" id="inventorySearch" placeholder="البحث..." class="input pr-9" oninput="filterInventory()"></div></div></div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">المخزون (${Store.data.inventory.length})</h3></div><div class="card-content"><div id="inventoryList" class="table-container">${renderInventoryTable(Store.data.inventory)}</div></div></div>
+        </div>
+      `;
+    }
+    
+    function renderInventoryTable(items) {
+      if (items.length === 0) return `<div class="text-center py-12 text-muted-foreground"><i data-lucide="package" class="h-12 w-12 mx-auto mb-4 opacity-50"></i><p>لا يوجد مخزون</p></div>`;
+      return `<table class="table"><thead><tr><th>الاسم</th><th>الفئة</th><th>الكمية</th><th>سعر الشراء</th><th>سعر البيع</th><th class="text-left">الإجراءات</th></tr></thead><tbody>${items.map(i => `<tr class="${i.quantity <= i.minQuantity ? 'bg-red-50 dark:bg-red-950/20' : ''}"><td class="font-medium">${i.name}</td><td>${i.category}</td><td><span class="${i.quantity <= i.minQuantity ? 'text-red-600 font-bold' : ''}">${i.quantity}</span>${i.quantity <= i.minQuantity ? '<span class="text-xs text-red-500 mr-1">(منخفض)</span>' : ''}</td><td>${formatNumber(i.costPrice)} د.أ</td><td>${formatNumber(i.sellingPrice)} د.أ</td><td><div class="flex gap-1"><button onclick="openInventoryDialog('${i.id}')" class="btn btn-ghost btn-icon"><i data-lucide="edit" class="h-4 w-4"></i></button><button onclick="confirmDelete('inventory', '${i.id}')" class="btn btn-ghost btn-icon"><i data-lucide="trash-2" class="h-4 w-4 text-red-500"></i></button></div></td></tr>`).join('')}</tbody></table>`;
+    }
+    
+    function filterInventory() {
+      const search = document.getElementById('inventorySearch').value.toLowerCase();
+      const filtered = Store.data.inventory.filter(i => i.name.toLowerCase().includes(search) || i.category.toLowerCase().includes(search));
+      document.getElementById('inventoryList').innerHTML = renderInventoryTable(filtered);
+      lucide.createIcons();
+    }
+    
+    // ==================== INVOICES ====================
+    function renderInvoices() {
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div><h1 class="text-3xl font-bold">الفواتير</h1><p class="text-muted-foreground">إدارة الفواتير</p></div>
+            <div class="flex gap-2">
+              <button onclick="openExportDialog('invoices')" class="btn btn-outline gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير</button>
+              <button onclick="alert('يمكن إنشاء فاتورة من صفحة الصيانة عند التسليم')" class="btn btn-primary gap-2"><i data-lucide="plus" class="h-4 w-4"></i>فاتورة جديدة</button>
+            </div>
+          </div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">الفواتير (${Store.data.invoices.length})</h3></div><div class="card-content"><div class="table-container">${Store.data.invoices.length === 0 ? `<div class="text-center py-12 text-muted-foreground"><i data-lucide="file-text" class="h-12 w-12 mx-auto mb-4 opacity-50"></i><p>لا توجد فواتير</p></div>` : `<table class="table"><thead><tr><th>رقم الفاتورة</th><th>العميل</th><th>المجموع</th><th>المدفوع</th><th>الحالة</th><th class="text-left">الإجراءات</th></tr></thead><tbody>${Store.data.invoices.map(inv => `<tr><td class="font-medium">${inv.invoiceNumber}</td><td>${getCustomerName(inv.customerId)}</td><td>${formatNumber(inv.total)} د.أ</td><td>${formatNumber(inv.paid)} د.أ</td><td><span class="badge ${inv.status === 'PAID' ? 'bg-green-500' : inv.status === 'PARTIAL' ? 'bg-orange-500' : 'bg-yellow-500'} text-white">${inv.status === 'PAID' ? 'مدفوعة' : inv.status === 'PARTIAL' ? 'جزئي' : 'معلقة'}</span></td><td><div class="flex gap-1"><button onclick="confirmDelete('invoice', '${inv.id}')" class="btn btn-ghost btn-icon"><i data-lucide="trash-2" class="h-4 w-4 text-red-500"></i></button></div></td></tr>`).join('')}</tbody></table>`}</div></div></div>
+        </div>
+      `;
+    }
+    
+    // ==================== EXPENSES ====================
+    function renderExpenses() {
+      const total = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div><h1 class="text-3xl font-bold">المصاريف</h1><p class="text-muted-foreground">إدارة المصاريف</p></div>
+            <div class="flex gap-2">
+              <button onclick="openExportDialog('expenses')" class="btn btn-outline gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير</button>
+              <button onclick="openExpenseDialog()" class="btn btn-primary gap-2"><i data-lucide="plus" class="h-4 w-4"></i>مصروف جديد</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="card"><div class="card-content pt-6"><div class="flex items-center gap-4"><div class="p-3 bg-red-500 rounded-lg"><i data-lucide="receipt" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-muted-foreground">إجمالي المصاريف</p><p class="text-2xl font-bold text-red-600">${formatNumber(total)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content pt-6"><div class="flex items-center gap-4"><div class="p-3 bg-purple-500 rounded-lg"><i data-lucide="file-text" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-muted-foreground">عدد المصاريف</p><p class="text-2xl font-bold">${Store.data.expenses.length}</p></div></div></div></div>
+          </div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">المصاريف (${Store.data.expenses.length})</h3></div><div class="card-content"><div class="table-container">${Store.data.expenses.length === 0 ? `<div class="text-center py-12 text-muted-foreground"><i data-lucide="receipt" class="h-12 w-12 mx-auto mb-4 opacity-50"></i><p>لا توجد مصاريف</p></div>` : `<table class="table"><thead><tr><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th>التاريخ</th><th class="text-left">الإجراءات</th></tr></thead><tbody>${Store.data.expenses.map(e => `<tr><td class="font-medium">${e.category}</td><td>${e.description}</td><td class="text-red-600 font-bold">${formatNumber(e.amount)} د.أ</td><td>${formatDate(e.date)}</td><td><div class="flex gap-1"><button onclick="openExpenseDialog('${e.id}')" class="btn btn-ghost btn-icon"><i data-lucide="edit" class="h-4 w-4"></i></button><button onclick="confirmDelete('expense', '${e.id}')" class="btn btn-ghost btn-icon"><i data-lucide="trash-2" class="h-4 w-4 text-red-500"></i></button></div></td></tr>`).join('')}</tbody></table>`}</div></div></div>
+        </div>
+      `;
+    }
+    
+    // ==================== DEBTS ====================
+    function renderDebts() {
+      const debts = Store.data.repairs.filter(r => r.status === 'DELIVERED' && r.debt > 0);
+      const totalDebts = debts.reduce((s, r) => s + r.debt, 0);
+      const debtors = new Set(debts.map(r => r.customerId)).size;
+      
+      return `
+        <div class="space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div><h1 class="text-3xl font-bold">إدارة الديون</h1><p class="text-muted-foreground">متابعة ديون العملاء</p></div>
+            <button onclick="openExportDialog('repairs')" class="btn btn-outline gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير</button>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="card border-red-200 bg-red-50 dark:bg-red-950/20"><div class="card-content pt-6"><div class="flex items-center gap-4"><div class="p-3 bg-red-500 rounded-lg"><i data-lucide="credit-card" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-muted-foreground">إجمالي الديون</p><p class="text-2xl font-bold text-red-600">${formatNumber(totalDebts)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content pt-6"><div class="flex items-center gap-4"><div class="p-3 bg-orange-500 rounded-lg"><i data-lucide="users" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-muted-foreground">عدد المدينين</p><p class="text-2xl font-bold">${debtors}</p></div></div></div></div>
+          </div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">ديون العملاء (${debts.length})</h3></div><div class="card-content">${debts.length === 0 ? `<div class="text-center py-12 text-muted-foreground"><i data-lucide="check-circle" class="h-12 w-12 mx-auto mb-4 text-green-500"></i><p>لا توجد ديون 🎉</p></div>` : `<div class="table-container"><table class="table"><thead><tr><th>العميل</th><th>الجهاز</th><th>السعر</th><th>المدفوع</th><th>الدين</th><th class="text-left">الإجراءات</th></tr></thead><tbody>${debts.map(d => `<tr><td><div><p class="font-medium">${getCustomerName(d.customerId)}</p><p class="text-xs text-muted-foreground" dir="ltr">${getCustomerPhone(d.customerId)}</p></div></td><td>${d.deviceModel}</td><td>${formatNumber(d.finalCost)} د.أ</td><td class="text-green-600 font-medium">${formatNumber(d.paidAmount)} د.أ</td><td><span class="badge bg-red-500 text-white">${formatNumber(d.debt)} د.أ</span></td><td><div class="flex gap-1"><button onclick="payFullDebt('${d.id}')" class="btn btn-outline btn-sm text-green-600">تسديد</button><button onclick="openPaymentDialog('${d.id}')" class="btn btn-outline btn-sm">جزئي</button></div></td></tr>`).join('')}</tbody></table></div>`}</div></div>
+        </div>
+      `;
+    }
+    
+    function payFullDebt(id) {
+      const r = Store.get('repairs', id);
+      if (r) { Store.update('repairs', id, { paidAmount: (r.paidAmount || 0) + r.debt, debt: 0 }); render(); }
+    }
+    
+    function openPaymentDialog(id) {
+      dialogs.payment = { open: true, debt: Store.get('repairs', id) };
+      render();
+    }
+    
+    // ==================== REPORTS ====================
+    function renderReports() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.reduce((s, r) => s + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+      const costs = delivered.reduce((s, r) => s + (r.maintenanceCost || 0), 0);
+      const revenue = delivered.reduce((s, r) => s + (r.finalCost || 0), 0);
+      const debts = delivered.reduce((s, r) => s + (r.debt || 0), 0);
+      const paid = delivered.reduce((s, r) => s + (r.paidAmount || 0), 0);
+      const expenses = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      const invRevenue = Store.data.invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + i.paid, 0);
+      const netProfit = profit + invRevenue - expenses;
+      
+      // بيانات الرسم البياني للأرباح والمصاريف
+      const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+      const currentMonth = new Date().getMonth();
+      const monthlyProfits = [];
+      const monthlyExpenses = [];
+      
+      for (let i = 0; i < 6; i++) {
+        const monthIndex = (currentMonth - 5 + i + 12) % 12;
+        const monthDelivered = Store.data.repairs.filter(r => {
+          if (r.status !== 'DELIVERED') return false;
+          const d = new Date(r.createdAt);
+          return d.getMonth() === monthIndex;
+        });
+        const mp = monthDelivered.reduce((s, r) => s + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+        const me = Store.data.expenses.filter(e => new Date(e.date).getMonth() === monthIndex).reduce((s, e) => s + e.amount, 0);
+        monthlyProfits.push(mp);
+        monthlyExpenses.push(me);
+      }
+      
+      // بيانات حالات الصيانة
+      const statusCounts = {};
+      statusOptions.forEach(s => statusCounts[s.value] = 0);
+      Store.data.repairs.forEach(r => statusCounts[r.status] = (statusCounts[r.status] || 0) + 1);
+      
+      // بيانات أنواع الأجهزة
+      const deviceCounts = {};
+      Store.data.repairs.forEach(r => {
+        deviceCounts[r.deviceType] = (deviceCounts[r.deviceType] || 0) + 1;
+      });
+      const topDevices = Object.entries(deviceCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      
+      const monthLabels = [];
+      for (let i = 0; i < 6; i++) {
+        const monthIndex = (currentMonth - 5 + i + 12) % 12;
+        monthLabels.push(months[monthIndex]);
+      }
+      
+      return `
+        <div class="space-y-6">
+          <div class="hidden md:flex justify-between items-center">
+            <div><h1 class="text-3xl font-bold">التقارير المالية</h1><p class="text-muted-foreground">تحليل الأداء المالي والتشغيلي</p></div>
+            <button onclick="openExportDialog('all')" class="btn btn-success gap-2"><i data-lucide="download" class="h-4 w-4"></i>تصدير التقرير الكامل</button>
+          </div>
+          
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="card"><div class="card-content p-4"><div class="flex items-center gap-3"><div class="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg"><i data-lucide="trending-up" class="h-5 w-5 text-green-600"></i></div><div><p class="text-sm text-muted-foreground">أرباح الصيانة</p><p class="text-xl font-bold text-green-600">${formatNumber(profit)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content p-4"><div class="flex items-center gap-3"><div class="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg"><i data-lucide="calculator" class="h-5 w-5 text-orange-600"></i></div><div><p class="text-sm text-muted-foreground">تكاليف الصيانة</p><p class="text-xl font-bold text-orange-600">${formatNumber(costs)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content p-4"><div class="flex items-center gap-3"><div class="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg"><i data-lucide="trending-down" class="h-5 w-5 text-red-600"></i></div><div><p class="text-sm text-muted-foreground">المصاريف التشغيلية</p><p class="text-xl font-bold text-red-600">${formatNumber(expenses)} د.أ</p></div></div></div></div>
+            <div class="card"><div class="card-content p-4"><div class="flex items-center gap-3"><div class="p-2 ${netProfit >= 0 ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-red-100 dark:bg-red-900/20'} rounded-lg"><i data-lucide="dollar-sign" class="h-5 w-5 ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}"></i></div><div><p class="text-sm text-muted-foreground">صافي الربح</p><p class="text-xl font-bold ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}">${formatNumber(netProfit)} د.أ</p></div></div></div></div>
+          </div>
+          
+          <div class="card bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950/20 dark:to-green-950/20 border-blue-200 dark:border-blue-800">
+            <div class="card-content p-4">
+              <h3 class="font-bold text-lg flex items-center gap-2 mb-3"><i data-lucide="calculator" class="h-5 w-5"></i>طريقة حساب الأرباح</h3>
+              <p class="text-sm text-muted-foreground mb-3">⚠️ يتم احتساب الأرباح فقط من الطلبات المسلمة (تم التسليم)</p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="p-3 bg-white/50 dark:bg-black/20 rounded-lg"><p class="font-medium text-green-600">أرباح الصيانة</p><p class="text-muted-foreground">السعر النهائي - تكلفة الصيانة</p><p class="font-bold mt-1">${formatNumber(profit)} د.أ</p></div>
+                <div class="p-3 bg-white/50 dark:bg-black/20 rounded-lg"><p class="font-medium text-blue-600">+ الإيرادات الأخرى</p><p class="text-muted-foreground">مبيعات، فواتير إضافية</p><p class="font-bold mt-1">${formatNumber(invRevenue)} د.أ</p></div>
+                <div class="p-3 bg-white/50 dark:bg-black/20 rounded-lg"><p class="font-medium text-red-600">- المصاريف التشغيلية</p><p class="text-muted-foreground">إيجار، كهرباء، رواتب...</p><p class="font-bold mt-1">${formatNumber(expenses)} د.أ</p></div>
+              </div>
+              <div class="text-center p-3 bg-white/70 dark:bg-black/30 rounded-lg mt-3">
+                <span class="text-muted-foreground">صافي الربح = </span>
+                <span class="text-green-600 font-bold">${formatNumber(profit)}</span>
+                <span class="text-muted-foreground"> + </span>
+                <span class="text-blue-600 font-bold">${formatNumber(invRevenue)}</span>
+                <span class="text-muted-foreground"> - </span>
+                <span class="text-red-600 font-bold">${formatNumber(expenses)}</span>
+                <span class="text-muted-foreground"> = </span>
+                <span class="font-bold text-xl ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}">${formatNumber(netProfit)} د.أ</span>
+              </div>
+              ${debts > 0 ? `<div class="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800 mt-3"><p class="text-orange-600 font-medium">💰 ديون العملاء المستحقة: ${formatNumber(debts)} د.أ</p></div>` : ''}
+            </div>
+          </div>
+          
+          <!-- رسم بياني للأرباح والمصاريف - عرض كامل -->
+          <div class="card">
+            <div class="card-header pb-2"><h3 class="font-bold flex items-center gap-2"><i data-lucide="bar-chart-3" class="h-5 w-5"></i>الأرباح والمصاريف</h3></div>
+            <div class="card-content pt-0">
+              <div style="height: 300px; width: 100%;">
+                <canvas id="profitExpensesChart"></canvas>
+              </div>
+              <div class="flex justify-center gap-6 mt-2">
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-green-500"></div><span class="text-sm">أرباح الصيانة</span></div>
+                <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-red-500"></div><span class="text-sm">المصاريف</span></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- الرسوم الدائرية -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card">
+              <div class="card-header"><h3 class="font-bold flex items-center gap-2"><i data-lucide="pie-chart" class="h-5 w-5"></i>حالات الصيانة</h3></div>
+              <div class="card-content">
+                <div style="height: 280px; display: flex; flex-direction: column; align-items: center;">
+                  <div style="height: 220px; width: 100%;"><canvas id="statusChart"></canvas></div>
+                  <div id="statusLegend" class="flex flex-wrap justify-center gap-4 mt-4"></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card">
+              <div class="card-header"><h3 class="font-bold flex items-center gap-2"><i data-lucide="package" class="h-5 w-5"></i>أنواع الأجهزة الأكثر صيانة</h3></div>
+              <div class="card-content">
+                <div style="height: 280px; display: flex; flex-direction: column; align-items: center;">
+                  <div style="height: 220px; width: 100%;"><canvas id="deviceChart"></canvas></div>
+                  <div id="deviceLegend" class="flex flex-wrap justify-center gap-4 mt-4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- أعلى الصيانات ربحية -->
+          <div class="card">
+            <div class="card-header"><h3 class="font-bold flex items-center gap-2"><i data-lucide="trending-up" class="h-5 w-5"></i>أعلى الصيانات ربحية</h3></div>
+            <div class="card-content">
+              <div class="table-container">
+                ${delivered.filter(r => r.finalCost && r.maintenanceCost).map(r => ({...r, profit: r.finalCost - r.maintenanceCost})).sort((a, b) => b.profit - a.profit).slice(0, 5).length > 0 ? 
+                  `<table class="table"><thead><tr><th>#</th><th>الجهاز</th><th>العميل</th><th>تكلفة الصيانة</th><th>السعر النهائي</th><th>الربح</th></tr></thead><tbody>${delivered.filter(r => r.finalCost && r.maintenanceCost).map(r => ({...r, profit: r.finalCost - r.maintenanceCost})).sort((a, b) => b.profit - a.profit).slice(0, 5).map((r, i) => `<tr><td class="font-bold">${i + 1}</td><td>${r.deviceType} - ${r.deviceModel}</td><td>${getCustomerName(r.customerId)}</td><td class="text-orange-600">${formatNumber(r.maintenanceCost)} د.أ</td><td class="text-blue-600">${formatNumber(r.finalCost)} د.أ</td><td class="text-green-600 font-bold">${formatNumber(r.profit)} د.أ</td></tr>`).join('')}</tbody></table>` 
+                  : `<div class="py-8 text-center text-muted-foreground">لا توجد بيانات كافية (يتم احتساب الأرباح من الطلبات المسلمة فقط)</div>`
+                }
+              </div>
+            </div>
+          </div>
+          
+          <!-- ملخص المخزون -->
+          <div class="card">
+            <div class="card-header"><h3 class="font-bold flex items-center gap-2"><i data-lucide="package" class="h-5 w-5"></i>ملخص المخزون</h3></div>
+            <div class="card-content">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="p-4 bg-secondary rounded-lg text-center"><p class="text-muted-foreground">إجمالي المنتجات</p><p class="text-2xl font-bold">${Store.data.inventory.length}</p></div>
+                <div class="p-4 bg-secondary rounded-lg text-center"><p class="text-muted-foreground">إجمالي القطع</p><p class="text-2xl font-bold">${Store.data.inventory.reduce((s, i) => s + i.quantity, 0)}</p></div>
+                <div class="p-4 bg-secondary rounded-lg text-center"><p class="text-muted-foreground">قيمة المخزون</p><p class="text-2xl font-bold">${formatNumber(Store.data.inventory.reduce((s, i) => s + i.costPrice * i.quantity, 0))} د.أ</p></div>
+              </div>
+              ${Store.data.inventory.filter(i => i.quantity <= i.minQuantity).length > 0 ? `<div class="mt-4 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg"><p class="text-red-600 font-medium">⚠️ يوجد ${Store.data.inventory.filter(i => i.quantity <= i.minQuantity).length} منتج بكمية منخفضة</p></div>` : ''}
+            </div>
+          </div>
+        </div>
+        <script>
+          // رسم الأرباح والمصاريف
+          setTimeout(() => {
+            const profitCtx = document.getElementById('profitExpensesChart');
+            if (profitCtx) {
+              new Chart(profitCtx, {
+                type: 'bar',
+                data: {
+                  labels: ${JSON.stringify(monthLabels)},
+                  datasets: [
+                    {
+                      label: 'أرباح الصيانة',
+                      data: ${JSON.stringify(monthlyProfits)},
+                      backgroundColor: '#10b981',
+                      borderRadius: 4
+                    },
+                    {
+                      label: 'المصاريف',
+                      data: ${JSON.stringify(monthlyExpenses)},
+                      backgroundColor: '#ef4444',
+                      borderRadius: 4
+                    }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          return context.dataset.label + ': ' + context.raw.toLocaleString() + ' د.أ';
+                        }
+                      }
+                    }
+                  },
+                  scales: {
+                    x: {
+                      grid: { display: false },
+                      ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                      grid: { color: 'rgba(0,0,0,0.1)' },
+                      ticks: { font: { size: 11 } },
+                      beginAtZero: true
+                    }
+                  }
+                }
+              });
+            }
+            
+            // رسم حالات الصيانة
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+              const statusData = ${JSON.stringify(statusOptions.filter(s => statusCounts[s.value] > 0).map(s => ({ label: s.label, value: statusCounts[s.value], color: s.color.replace('bg-', '').replace('-500', '') })))};
+              const statusColors = statusData.map(s => {
+                const colorMap = { 'yellow': '#f59e0b', 'blue': '#3b82f6', 'orange': '#f97316', 'purple': '#8b5cf6', 'green': '#22c55e', 'teal': '#14b8a6', 'red': '#ef4444' };
+                return colorMap[s.color] || '#6b7280';
+              });
+              
+              new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                  labels: statusData.map(s => s.label),
+                  datasets: [{
+                    data: statusData.map(s => s.value),
+                    backgroundColor: statusColors
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } }
+                }
+              });
+              
+              // إضافة الدليل
+              const statusLegend = document.getElementById('statusLegend');
+              if (statusLegend) {
+                statusLegend.innerHTML = statusData.map((s, i) => '<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background-color: ' + statusColors[i] + '"></div><span class="text-sm">' + s.label + ': ' + s.value + '</span></div>').join('');
+              }
+            }
+            
+            // رسم أنواع الأجهزة
+            const deviceCtx = document.getElementById('deviceChart');
+            if (deviceCtx) {
+              const deviceData = ${JSON.stringify(topDevices)};
+              const deviceColors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+              
+              new Chart(deviceCtx, {
+                type: 'pie',
+                data: {
+                  labels: deviceData.map(d => d[0]),
+                  datasets: [{
+                    data: deviceData.map(d => d[1]),
+                    backgroundColor: deviceColors.slice(0, deviceData.length)
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } }
+                }
+              });
+              
+              // إضافة الدليل
+              const deviceLegend = document.getElementById('deviceLegend');
+              if (deviceLegend) {
+                deviceLegend.innerHTML = deviceData.map((d, i) => '<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background-color: ' + deviceColors[i] + '"></div><span class="text-sm">' + d[0] + ': ' + d[1] + '</span></div>').join('');
+              }
+            }
+          }, 100);
+        </script>
+      `;
+    }
+    
+    // ==================== BACKUP ====================
+    function renderBackup() {
+      return `
+        <div class="space-y-6">
+          <div><h1 class="text-3xl font-bold">النسخ الاحتياطي</h1><p class="text-muted-foreground">حفظ واسترجاع البيانات</p></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="card"><div class="card-header"><div class="flex items-center gap-3"><div class="p-2 bg-green-500 rounded-lg"><i data-lucide="download" class="h-6 w-6 text-white"></i></div><div><h3 class="font-bold">إنشاء نسخة احتياطية</h3><p class="text-sm text-muted-foreground">تصدير البيانات</p></div></div></div><div class="card-content space-y-4"><p class="text-sm text-muted-foreground">تصدير جميع البيانات إلى ملف JSON.</p><button onclick="createBackup()" class="btn btn-primary w-full gap-2"><i data-lucide="file-json" class="h-4 w-4"></i>إنشاء نسخة احتياطية</button></div></div>
+            <div class="card"><div class="card-header"><div class="flex items-center gap-3"><div class="p-2 bg-blue-500 rounded-lg"><i data-lucide="upload" class="h-6 w-6 text-white"></i></div><div><h3 class="font-bold">استرجاع نسخة</h3><p class="text-sm text-muted-foreground">استيراد البيانات</p></div></div></div><div class="card-content space-y-4"><p class="text-sm text-muted-foreground">استرجاع من ملف سابق.</p><input type="file" id="backupFile" accept=".json" class="hidden" onchange="restoreBackup(event)"><button onclick="document.getElementById('backupFile').click()" class="btn btn-outline w-full gap-2"><i data-lucide="database" class="h-4 w-4"></i>اختيار ملف</button></div></div>
+          </div>
+          <div class="card border-red-200 bg-red-50 dark:bg-red-950/20"><div class="card-content p-4"><div class="flex items-center gap-3"><i data-lucide="alert-triangle" class="h-5 w-5 text-red-500"></i><div><p class="font-medium text-red-600">تحذير</p><p class="text-sm text-red-500">الاسترجاع سيحل محل جميع البيانات الحالية.</p></div></div></div></div>
+          <div class="card"><div class="card-header"><h3 class="font-bold">مسح البيانات</h3></div><div class="card-content space-y-4"><p class="text-sm text-muted-foreground">حذف جميع البيانات.</p><button onclick="clearAllData()" class="btn btn-destructive gap-2"><i data-lucide="trash-2" class="h-4 w-4"></i>مسح جميع البيانات</button></div></div>
+        </div>
+      `;
+    }
+    
+    function createBackup() {
+      const backup = { version: '1.0', createdAt: new Date().toISOString(), data: Store.data, stats: { customersCount: Store.data.customers.length, repairsCount: Store.data.repairs.length, inventoryCount: Store.data.inventory.length, invoicesCount: Store.data.invoices.length, expensesCount: Store.data.expenses.length } };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `نسخة_احتياطية_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function restoreBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const backup = JSON.parse(e.target.result);
+          if (backup.data) {
+            if (confirm('هل أنت متأكد؟ سيتم استبدال البيانات.')) { Store.data = backup.data; Store.save(); alert('تم الاسترجاع!'); render(); }
+          } else { alert('ملف غير صالح'); }
+        } catch (err) { alert('حدث خطأ'); }
+      };
+      reader.readAsText(file);
+    }
+    
+    function clearAllData() {
+      if (confirm('هل أنت متأكد؟ لا يمكن التراجع!')) {
+        if (confirm('تأكيد نهائي!')) { Store.data = { customers: [], repairs: [], inventory: [], invoices: [], expenses: [] }; Store.save(); render(); }
+      }
+    }
+    
+    // ==================== DIALOGS ====================
+    function renderDialogs() {
+      let html = '';
+      
+      if (dialogs.export.open) {
+        html += `<div class="dialog-overlay" onclick="closeExportDialog()"><div class="dialog-content sm:max-w-md" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-4 flex items-center gap-2"><i data-lucide="download" class="h-5 w-5 text-green-500"></i>تصدير البيانات</h2><p class="text-muted-foreground mb-4">اختر نوع البيانات والصيغة</p><div class="space-y-3"><div class="p-3 bg-secondary rounded-lg"><p class="font-medium mb-2">تصدير الكل</p><div class="flex gap-2"><button onclick="exportToExcel('all')" class="btn btn-outline btn-sm flex-1 gap-1"><i data-lucide="file-spreadsheet" class="h-4 w-4"></i>Excel</button><button onclick="exportToPDF('all')" class="btn btn-outline btn-sm flex-1 gap-1"><i data-lucide="file-text" class="h-4 w-4"></i>PDF</button></div></div><div class="grid grid-cols-2 gap-2"><button onclick="exportToExcel('customers')" class="btn btn-outline btn-sm">العملاء (Excel)</button><button onclick="exportToPDF('customers')" class="btn btn-outline btn-sm">العملاء (PDF)</button><button onclick="exportToExcel('repairs')" class="btn btn-outline btn-sm">الصيانة (Excel)</button><button onclick="exportToPDF('repairs')" class="btn btn-outline btn-sm">الصيانة (PDF)</button><button onclick="exportToExcel('inventory')" class="btn btn-outline btn-sm">المخزون (Excel)</button><button onclick="exportToPDF('inventory')" class="btn btn-outline btn-sm">المخزون (PDF)</button><button onclick="exportToExcel('invoices')" class="btn btn-outline btn-sm">الفواتير (Excel)</button><button onclick="exportToPDF('invoices')" class="btn btn-outline btn-sm">الفواتير (PDF)</button><button onclick="exportToExcel('expenses')" class="btn btn-outline btn-sm">المصاريف (Excel)</button><button onclick="exportToPDF('expenses')" class="btn btn-outline btn-sm">المصاريف (PDF)</button></div></div><div class="flex justify-end mt-4"><button onclick="closeExportDialog()" class="btn btn-outline">إغلاق</button></div></div></div>`;
+      }
+      
+      if (dialogs.customer.open) {
+        const c = dialogs.customer.editing;
+        html += `<div class="dialog-overlay" onclick="closeCustomerDialog()"><div class="dialog-content sm:max-w-md" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-4">${c ? 'تعديل عميل' : 'عميل جديد'}</h2><form onsubmit="saveCustomer(event)" class="space-y-4"><input type="hidden" id="customerId" value="${c?.id || ''}"><div><label class="label">الاسم *</label><input type="text" id="customerName" class="input" value="${c?.name || ''}" required></div><div><label class="label">الهاتف *</label><input type="tel" id="customerPhone" class="input" value="${c?.phone || ''}" required dir="ltr"></div><div><label class="label">البريد</label><input type="email" id="customerEmail" class="input" value="${c?.email || ''}"></div><div><label class="label">العنوان</label><input type="text" id="customerAddress" class="input" value="${c?.address || ''}"></div><div><label class="label">ملاحظات</label><textarea id="customerNotes" class="textarea">${c?.notes || ''}</textarea></div><div class="flex gap-2 justify-end"><button type="button" onclick="closeCustomerDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">${c ? 'تحديث' : 'إضافة'}</button></div></form></div></div>`;
+      }
+      
+      if (dialogs.repair.open) {
+        const r = dialogs.repair.editing;
+        html += `<div class="dialog-overlay" onclick="closeRepairDialog()"><div class="dialog-content sm:max-w-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-4">${r ? 'تعديل طلب' : 'طلب جديد'}</h2><form onsubmit="saveRepair(event)" class="space-y-4"><input type="hidden" id="repairId" value="${r?.id || ''}"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="label">العميل *</label><select id="repairCustomer" class="select" required><option value="">اختر</option>${Store.data.customers.map(c => `<option value="${c.id}" ${r?.customerId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div><div><label class="label">نوع الجهاز *</label><select id="repairDeviceType" class="select" required><option value="">اختر</option>${deviceTypes.map(t => `<option value="${t}" ${r?.deviceType === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div><div><label class="label">الموديل *</label><input type="text" id="repairDeviceModel" class="input" value="${r?.deviceModel || ''}" required></div><div><label class="label">تاريخ الإدخال</label><input type="date" id="repairEntryDate" class="input" value="${r?.entryDate ? r.entryDate.split('T')[0] : new Date().toISOString().split('T')[0]}"></div><div class="md:col-span-2"><label class="label">المشكلة *</label><textarea id="repairProblem" class="textarea" required>${r?.problem || ''}</textarea></div><div class="md:col-span-2"><label class="label">التشخيص</label><textarea id="repairDiagnosis" class="textarea">${r?.diagnosis || ''}</textarea></div><div><label class="label">الحالة</label><select id="repairStatus" class="select">${statusOptions.map(s => `<option value="${s.value}" ${r?.status === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}</select></div><div><label class="label">العربون</label><input type="number" id="repairDeposit" class="input" value="${r?.deposit || 0}" dir="ltr"></div><div><label class="label">تكلفة الصيانة</label><input type="number" id="repairMaintenanceCost" class="input" value="${r?.maintenanceCost || ''}" dir="ltr"></div><div><label class="label">السعر النهائي</label><input type="number" id="repairFinalCost" class="input" value="${r?.finalCost || ''}" dir="ltr"></div></div><div class="flex gap-2 justify-end"><button type="button" onclick="closeRepairDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">${r ? 'تحديث' : 'إضافة'}</button></div></form></div></div>`;
+      }
+      
+      if (dialogs.inventory.open) {
+        const i = dialogs.inventory.editing;
+        html += `<div class="dialog-overlay" onclick="closeInventoryDialog()"><div class="dialog-content sm:max-w-md" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-4">${i ? 'تعديل عنصر' : 'إضافة للخزون'}</h2><form onsubmit="saveInventory(event)" class="space-y-4"><input type="hidden" id="inventoryId" value="${i?.id || ''}"><div><label class="label">الاسم *</label><input type="text" id="inventoryName" class="input" value="${i?.name || ''}" required></div><div><label class="label">الفئة *</label><input type="text" id="inventoryCategory" class="input" value="${i?.category || ''}" required></div><div class="grid grid-cols-2 gap-4"><div><label class="label">الكمية</label><input type="number" id="inventoryQuantity" class="input" value="${i?.quantity || 0}"></div><div><label class="label">الحد الأدنى</label><input type="number" id="inventoryMinQuantity" class="input" value="${i?.minQuantity || 5}"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="label">سعر الشراء</label><input type="number" id="inventoryCostPrice" class="input" value="${i?.costPrice || 0}" dir="ltr"></div><div><label class="label">سعر البيع</label><input type="number" id="inventorySellingPrice" class="input" value="${i?.sellingPrice || 0}" dir="ltr"></div></div><div class="flex gap-2 justify-end"><button type="button" onclick="closeInventoryDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">${i ? 'تحديث' : 'إضافة'}</button></div></form></div></div>`;
+      }
+      
+      if (dialogs.expense.open) {
+        const e = dialogs.expense.editing;
+        html += `<div class="dialog-overlay" onclick="closeExpenseDialog()"><div class="dialog-content sm:max-w-md" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-4">${e ? 'تعديل مصروف' : 'مصروف جديد'}</h2><form onsubmit="saveExpense(event)" class="space-y-4"><input type="hidden" id="expenseId" value="${e?.id || ''}"><div><label class="label">الفئة *</label><select id="expenseCategory" class="select" required><option value="">اختر</option>${expenseCategories.map(c => `<option value="${c}" ${e?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div><div><label class="label">الوصف *</label><input type="text" id="expenseDescription" class="input" value="${e?.description || ''}" required></div><div><label class="label">المبلغ *</label><input type="number" id="expenseAmount" class="input" value="${e?.amount || ''}" required dir="ltr"></div><div><label class="label">التاريخ</label><input type="date" id="expenseDate" class="input" value="${e?.date ? e.date.split('T')[0] : new Date().toISOString().split('T')[0]}"></div><div class="flex gap-2 justify-end"><button type="button" onclick="closeExpenseDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">${e ? 'تحديث' : 'إضافة'}</button></div></form></div></div>`;
+      }
+      
+      if (dialogs.delivery.open && dialogs.delivery.repair) {
+        const r = dialogs.delivery.repair;
+        const remaining = (r.finalCost || 0) - r.deposit;
+        html += `<div class="dialog-overlay" onclick="closeDeliveryDialog()"><div class="dialog-content sm:max-w-md" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i data-lucide="credit-card" class="h-5 w-5"></i>تأكيد التسليم</h2><div class="space-y-4"><div class="p-3 bg-secondary rounded-lg"><div class="flex justify-between mb-2"><span class="text-muted-foreground">العميل:</span><span class="font-medium">${getCustomerName(r.customerId)}</span></div><div class="flex justify-between mb-2"><span class="text-muted-foreground">السعر:</span><span class="font-bold text-blue-600">${formatNumber(r.finalCost || 0)} د.أ</span></div><div class="flex justify-between"><span class="text-muted-foreground">العربون:</span><span class="font-medium text-green-600">${formatNumber(r.deposit)} د.أ</span></div></div><div class="p-3 bg-amber-50 rounded-lg border border-amber-200"><div class="flex justify-between"><span class="text-muted-foreground">المتبقي:</span><span class="font-bold text-amber-600">${formatNumber(remaining)} د.أ</span></div></div><div><label class="label">حالة الدفع</label><div class="grid grid-cols-3 gap-2"><button type="button" onclick="setPaymentFull()" class="btn bg-green-500 text-white hover:bg-green-600 flex-col py-3">دفع كامل</button><button type="button" onclick="setPaymentPartial()" class="btn btn-outline flex-col py-3">دفع جزئي</button><button type="button" onclick="setPaymentNone()" class="btn btn-outline flex-col py-3">لم يدفع</button></div></div><div id="paymentInputs" class="hidden space-y-3"><div><label class="label">المبلغ المدفوع</label><input type="number" id="deliveryPaidAmount" class="input" value="${remaining}" dir="ltr"></div><div><label class="label">الدين</label><input type="number" id="deliveryDebt" class="input" value="0" dir="ltr"></div></div></div><div class="flex gap-2 justify-end mt-4"><button type="button" onclick="closeDeliveryDialog()" class="btn btn-outline">إلغاء</button><button type="button" onclick="confirmDelivery()" class="btn btn-success">تأكيد</button></div></div></div>`;
+      }
+      
+      if (dialogs.payment.open && dialogs.payment.debt) {
+        const d = dialogs.payment.debt;
+        html += `<div class="dialog-overlay" onclick="closePaymentDialog()"><div class="dialog-content sm:max-w-md" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i data-lucide="banknote" class="h-5 w-5"></i>تسديد دين</h2><div class="space-y-4"><div class="p-3 bg-secondary rounded-lg"><div class="flex justify-between mb-2"><span class="text-muted-foreground">العميل:</span><span class="font-medium">${getCustomerName(d.customerId)}</span></div><div class="flex justify-between"><span class="text-muted-foreground">الدين:</span><span class="font-bold text-red-600">${formatNumber(d.debt)} د.أ</span></div></div><div><label class="label">المبلغ</label><input type="number" id="paymentAmount" class="input" value="${d.debt}" max="${d.debt}" dir="ltr"></div><div><label class="label">تاريخ الدفع</label><input type="date" id="paymentDate" class="input" value="${new Date().toISOString().split('T')[0]}"></div></div><div class="flex gap-2 justify-end mt-4"><button type="button" onclick="closePaymentDialog()" class="btn btn-outline">إلغاء</button><button type="button" onclick="processPayment()" class="btn btn-success">تأكيد</button></div></div></div>`;
+      }
+      
+      if (dialogs.view.open && dialogs.view.data && dialogs.view.type === 'repair') {
+        const r = dialogs.view.data;
+        const s = statusOptions.find(o => o.value === r.status);
+        const p = r.status === 'DELIVERED' && r.finalCost && r.maintenanceCost ? r.finalCost - r.maintenanceCost : null;
+        html += `<div class="dialog-overlay" onclick="closeViewDialog()"><div class="dialog-content sm:max-w-lg" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-4">تفاصيل الطلب</h2><div class="space-y-4"><div class="grid grid-cols-2 gap-4"><div><p class="text-sm text-muted-foreground">العميل</p><p class="font-medium">${getCustomerName(r.customerId)}</p></div><div><p class="text-sm text-muted-foreground">الجهاز</p><p class="font-medium">${r.deviceType} - ${r.deviceModel}</p></div><div><p class="text-sm text-muted-foreground">تاريخ الإدخال</p><p class="font-medium">${formatDate(r.entryDate || r.createdAt)}</p></div><div><p class="text-sm text-muted-foreground">الحالة</p><span class="badge text-white ${s?.color}">${s?.label}</span></div></div><div><p class="text-sm text-muted-foreground">المشكلة</p><p class="bg-secondary p-3 rounded-lg mt-1">${r.problem}</p></div><div class="grid grid-cols-3 gap-4"><div><p class="text-sm text-muted-foreground">العربون</p><p class="font-medium">${formatNumber(r.deposit)} د.أ</p></div><div><p class="text-sm text-muted-foreground">التكلفة</p><p class="font-medium text-red-600">${formatNumber(r.maintenanceCost)} د.أ</p></div><div><p class="text-sm text-muted-foreground">السعر</p><p class="font-medium text-blue-600">${formatNumber(r.finalCost)} د.أ</p></div></div>${r.status === 'DELIVERED' ? `<div class="p-4 bg-blue-50 rounded-lg border border-blue-200"><div class="grid grid-cols-2 gap-4 text-sm"><div><span class="text-muted-foreground">المدفوع:</span><p class="font-bold text-green-600">${formatNumber(r.paidAmount)} د.أ</p></div><div><span class="text-muted-foreground">الدين:</span><p class="font-bold text-red-600">${formatNumber(r.debt)} د.أ</p></div></div></div>${p !== null ? `<div class="p-4 bg-green-50 rounded-lg border border-green-200"><div class="flex justify-between"><span class="font-bold text-green-600">الربح</span><span class="font-bold text-xl text-green-600">${formatNumber(p)} د.أ</span></div></div>` : ''}` : ''}</div><div class="flex justify-end mt-4"><button onclick="closeViewDialog()" class="btn btn-primary">إغلاق</button></div></div></div>`;
+      }
+      
+      if (dialogs.confirm.open) {
+        html += `<div class="dialog-overlay" onclick="closeConfirmDialog()"><div class="dialog-content sm:max-w-sm" onclick="event.stopPropagation()"><h2 class="text-lg font-bold mb-2">${dialogs.confirm.title}</h2><p class="text-muted-foreground mb-4">${dialogs.confirm.message}</p><div class="flex gap-2 justify-end"><button onclick="closeConfirmDialog()" class="btn btn-outline">إلغاء</button><button onclick="executeConfirm()" class="btn btn-destructive">حذف</button></div></div></div>`;
+      }
+      
+      return html;
+    }
+    
+    // ==================== DIALOG FUNCTIONS ====================
+    function openExportDialog(type) { dialogs.export = { open: true, type: type || 'all' }; render(); }
+    function closeExportDialog() { dialogs.export = { open: false }; render(); }
+    
+    function openCustomerDialog(id = null) { dialogs.customer = { open: true, editing: id ? Store.get('customers', id) : null }; render(); }
+    function closeCustomerDialog() { dialogs.customer = { open: false, editing: null }; render(); }
+    function saveCustomer(e) { e.preventDefault(); const id = document.getElementById('customerId').value; const data = { name: document.getElementById('customerName').value, phone: document.getElementById('customerPhone').value, email: document.getElementById('customerEmail').value, address: document.getElementById('customerAddress').value, notes: document.getElementById('customerNotes').value }; id ? Store.update('customers', id, data) : Store.add('customers', data); closeCustomerDialog(); }
+    
+    function openRepairDialog(id = null) { dialogs.repair = { open: true, editing: id ? Store.get('repairs', id) : null }; render(); }
+    function closeRepairDialog() { dialogs.repair = { open: false, editing: null }; render(); }
+    function saveRepair(e) { e.preventDefault(); const id = document.getElementById('repairId').value; const status = document.getElementById('repairStatus').value; const data = { customerId: document.getElementById('repairCustomer').value, deviceType: document.getElementById('repairDeviceType').value, deviceModel: document.getElementById('repairDeviceModel').value, entryDate: document.getElementById('repairEntryDate').value ? new Date(document.getElementById('repairEntryDate').value).toISOString() : new Date().toISOString(), problem: document.getElementById('repairProblem').value, diagnosis: document.getElementById('repairDiagnosis').value, status: status, deposit: parseFloat(document.getElementById('repairDeposit').value) || 0, maintenanceCost: parseFloat(document.getElementById('repairMaintenanceCost').value) || null, finalCost: parseFloat(document.getElementById('repairFinalCost').value) || null }; if (id) { const existing = Store.get('repairs', id); if (status === 'DELIVERED' && existing.status !== 'DELIVERED') { closeRepairDialog(); dialogs.delivery = { open: true, repair: { ...existing, ...data } }; render(); return; } if (status === 'COMPLETED') data.completedAt = new Date().toISOString(); Store.update('repairs', id, data); } else { data.paidAmount = 0; data.debt = 0; Store.add('repairs', data); } closeRepairDialog(); }
+    
+    function openInventoryDialog(id = null) { dialogs.inventory = { open: true, editing: id ? Store.get('inventory', id) : null }; render(); }
+    function closeInventoryDialog() { dialogs.inventory = { open: false, editing: null }; render(); }
+    function saveInventory(e) { e.preventDefault(); const id = document.getElementById('inventoryId').value; const data = { name: document.getElementById('inventoryName').value, category: document.getElementById('inventoryCategory').value, quantity: parseInt(document.getElementById('inventoryQuantity').value) || 0, minQuantity: parseInt(document.getElementById('inventoryMinQuantity').value) || 5, costPrice: parseFloat(document.getElementById('inventoryCostPrice').value) || 0, sellingPrice: parseFloat(document.getElementById('inventorySellingPrice').value) || 0 }; id ? Store.update('inventory', id, data) : Store.add('inventory', data); closeInventoryDialog(); }
+    
+    function openExpenseDialog(id = null) { dialogs.expense = { open: true, editing: id ? Store.get('expenses', id) : null }; render(); }
+    function closeExpenseDialog() { dialogs.expense = { open: false, editing: null }; render(); }
+    function saveExpense(e) { e.preventDefault(); const id = document.getElementById('expenseId').value; const data = { category: document.getElementById('expenseCategory').value, description: document.getElementById('expenseDescription').value, amount: parseFloat(document.getElementById('expenseAmount').value) || 0, date: document.getElementById('expenseDate').value ? new Date(document.getElementById('expenseDate').value).toISOString() : new Date().toISOString() }; id ? Store.update('expenses', id, data) : Store.add('expenses', data); closeExpenseDialog(); }
+    
+    function closeDeliveryDialog() { dialogs.delivery = { open: false, repair: null }; render(); }
+    function setPaymentFull() { const r = dialogs.delivery.repair; document.getElementById('deliveryPaidAmount').value = (r.finalCost || 0) - r.deposit; document.getElementById('deliveryDebt').value = 0; document.getElementById('paymentInputs').classList.add('hidden'); }
+    function setPaymentPartial() { document.getElementById('paymentInputs').classList.remove('hidden'); document.getElementById('deliveryPaidAmount').value = ''; document.getElementById('deliveryDebt').value = ''; }
+    function setPaymentNone() { const r = dialogs.delivery.repair; document.getElementById('deliveryPaidAmount').value = 0; document.getElementById('deliveryDebt').value = (r.finalCost || 0) - r.deposit; document.getElementById('paymentInputs').classList.add('hidden'); }
+    function confirmDelivery() { const r = dialogs.delivery.repair; const paid = parseFloat(document.getElementById('deliveryPaidAmount').value) || 0; const debt = parseFloat(document.getElementById('deliveryDebt').value) || 0; Store.update('repairs', r.id, { status: 'DELIVERED', paidAmount: paid, debt: debt, deliveredAt: new Date().toISOString() }); closeDeliveryDialog(); }
+    
+    function closePaymentDialog() { dialogs.payment = { open: false, debt: null }; render(); }
+    function processPayment() { const d = dialogs.payment.debt; const amount = parseFloat(document.getElementById('paymentAmount').value) || 0; const paymentDate = document.getElementById('paymentDate').value; if (amount <= 0 || amount > d.debt) { alert('مبلغ غير صالح'); return; } Store.update('repairs', d.id, { paidAmount: (d.paidAmount || 0) + amount, debt: d.debt - amount, lastPaymentDate: paymentDate ? new Date(paymentDate).toISOString() : new Date().toISOString() }); closePaymentDialog(); }
+    
+    function viewRepair(id) { dialogs.view = { open: true, type: 'repair', data: Store.get('repairs', id) }; render(); }
+    function closeViewDialog() { dialogs.view = { open: false, type: null, data: null }; render(); }
+    
+    function confirmDelete(type, id) { dialogs.confirm = { open: true, title: 'تأكيد الحذف', message: 'هل أنت متأكد من حذف هذا العنصر؟', type: type, id: id }; render(); }
+    function closeConfirmDialog() { dialogs.confirm = { open: false, title: '', message: '' }; render(); }
+    function executeConfirm() { if (dialogs.confirm.type && dialogs.confirm.id) { Store.delete(dialogs.confirm.type + 's', dialogs.confirm.id); } closeConfirmDialog(); }
+    
+    // ==================== NAVIGATION ====================
+    function navigate(page) { currentPage = page; closeDrawer(); }
+    function toggleTheme() { currentTheme = currentTheme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', currentTheme); document.documentElement.classList.toggle('dark', currentTheme === 'dark'); render(); }
+    function attachEventListeners() { document.documentElement.classList.toggle('dark', currentTheme === 'dark'); }
+    
+    // ==================== INITIALIZE ====================
+    render();
+  </script>
+</body>
+</html>

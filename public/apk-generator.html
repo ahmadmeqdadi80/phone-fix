@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحويل التطبيق إلى APK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-violet-900 via-purple-900 to-slate-900 min-h-screen text-white">
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <div class="w-24 h-24 mx-auto mb-6 bg-white rounded-3xl shadow-2xl flex items-center justify-center">
+        <img src="/icons/icon-96.png" alt="App Icon" class="w-16 h-16 rounded-2xl">
+      </div>
+      <h1 class="text-4xl font-bold mb-2">تحويل التطبيق إلى APK</h1>
+      <p class="text-purple-200">Phone Maintenance - نظام صيانة الموبايل</p>
+    </div>
+
+    <!-- Method 1: PWABuilder -->
+    <div class="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-8 border border-white/20">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center text-2xl font-bold">1</div>
+        <div>
+          <h2 class="text-2xl font-bold">استخدام PWABuilder</h2>
+          <p class="text-purple-200">الطريقة الأسهل والموصى بها</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="bg-white/5 rounded-xl p-4">
+          <h3 class="font-bold mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-sm">1</span>
+            افتح موقع PWABuilder
+          </h3>
+          <a href="https://www.pwabuilder.com/" target="_blank" 
+             class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl font-medium transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+            افتح pwabuilder.com
+          </a>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4">
+          <h3 class="font-bold mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-sm">2</span>
+            أدخل رابط التطبيق
+          </h3>
+          <div class="bg-black/30 rounded-lg p-3 font-mono text-sm break-all">
+            https://phone-maintenance-ayfxwxjrn-ahmadmeqdadi80-2606s-projects.vercel.app/mobile-repair-app-full.html
+          </div>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4">
+          <h3 class="font-bold mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-sm">3</span>
+            اضغط على "Start" ثم انتظر التحليل
+          </h3>
+          <p class="text-purple-200 text-sm">سيقوم الموقع بتحليل التطبيق والتأكد من جاهزيته</p>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4">
+          <h3 class="font-bold mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-sm">4</span>
+            اختر "Android" من الخيارات
+          </h3>
+          <p class="text-purple-200 text-sm">يمكنك أيضاً اختيار iOS أو Windows إذا أردت</p>
+        </div>
+
+        <div class="bg-white/5 rounded-xl p-4">
+          <h3 class="font-bold mb-2 flex items-center gap-2">
+            <span class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-sm">5</span>
+            اضغط "Generate" لإنشاء ملف APK
+          </h3>
+          <p class="text-purple-200 text-sm">سيتم تحميل ملف APK جاهز للتثبيت</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Method 2: Bubblewrap -->
+    <div class="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-8 border border-white/20">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-2xl font-bold">2</div>
+        <div>
+          <h2 class="text-2xl font-bold">استخدام Bubblewrap (للمطورين)</h2>
+          <p class="text-purple-200">يتطلب Node.js و Android SDK</p>
+        </div>
+      </div>
+
+      <div class="bg-black/30 rounded-xl p-4 font-mono text-sm overflow-x-auto">
+        <pre class="text-green-400">
+# تثبيت Bubblewrap
+npm install -g @anthropic-ai/anthropic-vertexai
+
+# إنشاء مشروع جديد
+bubblewrap init --manifest="https://phone-maintenance-ayfxwxjrn-ahmadmeqdadi80-2606s-projects.vercel.app/manifest.json"
+
+# بناء APK
+bubblewrap build</pre>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-8 border border-white/20">
+      <h2 class="text-2xl font-bold mb-6">مميزات التطبيق</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-4">
+          <div class="w-10 h-10 bg-violet-500 rounded-lg flex items-center justify-center">📱</div>
+          <span>يعمل بدون إنترنت</span>
+        </div>
+        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-4">
+          <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">⚡</div>
+          <span>سريع وخفيف</span>
+        </div>
+        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-4">
+          <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">🌙</div>
+          <span>الوضع الليلي</span>
+        </div>
+        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-4">
+          <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">💾</div>
+          <span>نسخ احتياطي</span>
+        </div>
+        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-4">
+          <div class="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">📊</div>
+          <span>تقارير وإحصائيات</span>
+        </div>
+        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-4">
+          <div class="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">💰</div>
+          <span>إدارة الديون</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Direct Links -->
+    <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-8 text-center">
+      <h2 class="text-2xl font-bold mb-4">روابط سريعة</h2>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="https://www.pwabuilder.com/" target="_blank" 
+           class="bg-white text-green-600 hover:bg-green-50 px-6 py-3 rounded-xl font-bold transition-colors">
+          PWABuilder
+        </a>
+        <a href="https://phone-maintenance-ayfxwxjrn-ahmadmeqdadi80-2606s-projects.vercel.app/mobile-repair-app-full.html" 
+           class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-colors">
+          فتح التطبيق
+        </a>
+        <a href="/manifest.json" 
+           class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-colors">
+          Manifest
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center mt-8 text-purple-300 text-sm">
+      <p>Phone Maintenance System © 2024</p>
+    </div>
+  </div>
+</body>
+</html>

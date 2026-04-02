@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>نظام محاسبة صيانة الموبايل</title>
+  
+  <!-- CSS مدمج -->
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap');
+    
+    :root {
+      --primary: #7c3aed;
+      --primary-dark: #6d28d9;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    
+    .dark {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    
+    body {
+      font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    /* Layout */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    /* Mobile Header */
+    .mobile-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    @media (min-width: 769px) {
+      .mobile-header { display: none; }
+    }
+    
+    /* Desktop Sidebar */
+    .desktop-sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 220px;
+      background: var(--card-bg);
+      border-left: 1px solid var(--border);
+      z-index: 40;
+      display: none;
+      flex-direction: column;
+    }
+    
+    @media (min-width: 769px) {
+      .desktop-sidebar { display: flex; }
+    }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 16px;
+      padding-top: 70px;
+    }
+    
+    @media (min-width: 769px) {
+      .main-content {
+        margin-right: 220px;
+        padding-top: 16px;
+      }
+    }
+    
+    /* Drawer */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .drawer-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 280px;
+      max-width: 85vw;
+      background: var(--card-bg);
+      z-index: 101;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+    }
+    
+    .drawer.open {
+      transform: translateX(0);
+    }
+    
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    
+    .card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .card-body {
+      padding: 16px;
+    }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    
+    .btn:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    
+    .btn-outline:hover {
+      background: var(--bg);
+    }
+    
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .btn-block {
+      width: 100%;
+    }
+    
+    /* Inputs */
+    .input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--card-bg);
+      color: var(--text);
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    
+    .input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .input::placeholder {
+      color: var(--text-muted);
+    }
+    
+    textarea.input {
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    .label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+    
+    .form-group {
+      margin-bottom: 14px;
+    }
+    
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .table th,
+    .table td {
+      padding: 12px 10px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .table th {
+      background: var(--bg);
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    
+    .table tbody tr:hover {
+      background: var(--bg);
+    }
+    
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    /* Dialog */
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+    
+    .dialog-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .dialog {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 450px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+    }
+    
+    .dialog-overlay.open .dialog {
+      transform: scale(1);
+    }
+    
+    .dialog-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    
+    .dialog-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    @media (min-width: 769px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .stat-title {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    
+    /* Page Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    
+    /* Nav Items */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      width: 100%;
+      text-align: right;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .nav-item:hover {
+      background: var(--bg);
+    }
+    
+    .nav-item.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    /* Alert */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .alert-warning {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+    }
+    
+    .alert-info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #2563eb;
+    }
+    
+    /* Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    
+    @media (max-width: 480px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Chart Container */
+    .chart-container {
+      height: 200px;
+      position: relative;
+    }
+    
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+    }
+    
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+    }
+    
+    .toast {
+      background: #1e293b;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    
+    /* Icon (using text/emoji as fallback) */
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app-container"></div>
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+  
+  <!-- JavaScript مدمج -->
+  <script>
+    // ==================== المتجر (Store) ====================
+    const Store = {
+      data: {
+        customers: [],
+        repairs: [],
+        inventory: [],
+        invoices: [],
+        expenses: []
+      },
+      
+      init() {
+        const saved = localStorage.getItem('mobileRepairAppData');
+        if (saved) {
+          try {
+            this.data = JSON.parse(saved);
+          } catch(e) {
+            console.error('Error loading data:', e);
+          }
+        }
+        if (!this.data.customers || this.data.customers.length === 0) {
+          this.loadSampleData();
+        }
+      },
+      
+      save() {
+        try {
+          localStorage.setItem('mobileRepairAppData', JSON.stringify(this.data));
+        } catch(e) {
+          console.error('Error saving data:', e);
+          showToast('خطأ في حفظ البيانات');
+        }
+      },
+      
+      loadSampleData() {
+        this.data.customers = [
+          { id: 'c1', name: 'أحمد محمد علي', phone: '0791234567', address: 'عمان - عبدون', notes: 'عميل دائم' },
+          { id: 'c2', name: 'سارة خالد', phone: '0797654321', address: 'الزرقاء', notes: '' },
+          { id: 'c3', name: 'محمد عبدالله', phone: '0799876543', address: 'إربد', notes: '' }
+        ];
+        
+        this.data.repairs = [
+          { 
+            id: 'r1', 
+            customerId: 'c1', 
+            deviceType: 'iPhone', 
+            deviceModel: 'iPhone 14 Pro', 
+            problem: 'شاشة مكسورة - تحتاج استبدال', 
+            status: 'DELIVERED', 
+            maintenanceCost: 150, 
+            finalCost: 250, 
+            deposit: 50, 
+            paidAmount: 250, 
+            debt: 0,
+            createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+            deliveredAt: new Date(Date.now() - 86400000).toISOString()
+          },
+          { 
+            id: 'r2', 
+            customerId: 'c2', 
+            deviceType: 'Samsung', 
+            deviceModel: 'Galaxy S23 Ultra', 
+            problem: 'البطارية تفرغ بسرعة', 
+            status: 'IN_PROGRESS', 
+            maintenanceCost: 30, 
+            finalCost: 80, 
+            deposit: 20, 
+            paidAmount: 0, 
+            debt: 0,
+            createdAt: new Date(Date.now() - 86400000).toISOString()
+          },
+          { 
+            id: 'r3', 
+            customerId: 'c3', 
+            deviceType: 'Xiaomi', 
+            deviceModel: 'Redmi Note 12', 
+            problem: 'الجهاز لا يشتغل - يحتاج فحص', 
+            status: 'DIAGNOSING',
+            createdAt: new Date().toISOString()
+          }
+        ];
+        
+        this.data.inventory = [
+          { id: 'i1', name: 'شاشة iPhone 14 Pro أصلية', category: 'شاشات', quantity: 5, minQuantity: 2, costPrice: 120, sellingPrice: 180 },
+          { id: 'i2', name: 'بطارية Samsung Galaxy S23', category: 'بطاريات', quantity: 10, minQuantity: 3, costPrice: 25, sellingPrice: 50 },
+          { id: 'i3', name: 'شاحن سريع 25W', category: 'إكسسوارات', quantity: 15, minQuantity: 5, costPrice: 8, sellingPrice: 15 },
+          { id: 'i4', name: 'كابل USB-C', category: 'إكسسوارات', quantity: 2, minQuantity: 5, costPrice: 5, sellingPrice: 10 }
+        ];
+        
+        this.data.expenses = [
+          { id: 'e1', category: 'إيجار', description: 'إيجار المحل - شهر شباط', amount: 300, date: new Date().toISOString() },
+          { id: 'e2', category: 'كهرباء', description: 'فاتورة الكهرباء', amount: 50, date: new Date().toISOString() }
+        ];
+        
+        this.data.invoices = [
+          { id: 'inv1', invoiceNumber: 'INV-001', customerId: 'c1', total: 250, paid: 250, status: 'PAID', date: new Date().toISOString() }
+        ];
+        
+        this.save();
+      },
+      
+      add(collection, item) {
+        item.id = Date.now().toString();
+        item.createdAt = new Date().toISOString();
+        this.data[collection].push(item);
+        this.save();
+        return item;
+      },
+      
+      update(collection, id, updates) {
+        const index = this.data[collection].findIndex(item => item.id === id);
+        if (index > -1) {
+          this.data[collection][index] = { ...this.data[collection][index], ...updates, updatedAt: new Date().toISOString() };
+          this.save();
+          return true;
+        }
+        return false;
+      },
+      
+      delete(collection, id) {
+        const initialLength = this.data[collection].length;
+        this.data[collection] = this.data[collection].filter(item => item.id !== id);
+        if (this.data[collection].length < initialLength) {
+          this.save();
+          return true;
+        }
+        return false;
+      },
+      
+      get(collection, id) {
+        return this.data[collection].find(item => item.id === id);
+      },
+      
+      getAll(collection) {
+        return this.data[collection] || [];
+      }
+    };
+    
+    // تهيئة المتجر
+    Store.init();
+    
+    // ==================== الحالة (State) ====================
+    let currentPage = 'dashboard';
+    let theme = localStorage.getItem('theme') || 'light';
+    let drawerOpen = false;
+    let currentDialog = null;
+    let dialogData = null;
+    let deleteCallback = null;
+    
+    // ==================== الثوابت ====================
+    const STATUS_LIST = [
+      { value: 'PENDING', label: 'قيد الانتظار', color: '#f59e0b' },
+      { value: 'DIAGNOSING', label: 'قيد التشخيص', color: '#3b82f6' },
+      { value: 'WAITING_PARTS', label: 'انتظار القطع', color: '#f97316' },
+      { value: 'IN_PROGRESS', label: 'قيد الإصلاح', color: '#8b5cf6' },
+      { value: 'COMPLETED', label: 'تم الإصلاح', color: '#22c55e' },
+      { value: 'DELIVERED', label: 'تم التسليم', color: '#14b8a6' },
+      { value: 'CANCELLED', label: 'ملغي', color: '#ef4444' }
+    ];
+    
+    const DEVICE_TYPES = ['iPhone', 'Samsung', 'Huawei', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'Nokia', 'LG', 'HTC', 'Sony', 'أخرى'];
+    
+    const EXPENSE_CATEGORIES = ['إيجار', 'كهرباء', 'ماء', 'رواتب', 'مشتريات', 'صيانة', 'نقل', 'ضرائب', 'أخرى'];
+    
+    // ==================== الدوال المساعدة ====================
+    function formatNumber(num) {
+      return (num || 0).toLocaleString('ar-SA');
+    }
+    
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    
+    function formatDateTime(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    
+    function getCustomerName(customerId) {
+      const customer = Store.data.customers.find(c => c.id === customerId);
+      return customer ? customer.name : 'غير معروف';
+    }
+    
+    function getStatusInfo(statusValue) {
+      return STATUS_LIST.find(s => s.value === statusValue) || { label: statusValue, color: '#6b7280' };
+    }
+    
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // ==================== العرض (Render) ====================
+    function render() {
+      const app = document.getElementById('app');
+      app.innerHTML = renderApp();
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    }
+    
+    function renderApp() {
+      return renderMobileHeader() + 
+             renderDrawer() + 
+             renderSidebar() + 
+             renderMain() + 
+             renderDialogs();
+    }
+    
+    function renderMobileHeader() {
+      const titles = {
+        dashboard: 'لوحة التحكم',
+        customers: 'العملاء',
+        repairs: 'الصيانة',
+        inventory: 'المخزون',
+        invoices: 'الفواتير',
+        expenses: 'المصاريف',
+        debts: 'الديون',
+        reports: 'التقارير',
+        backup: 'النسخ الاحتياطي'
+      };
+      
+      return '<header class="mobile-header">' +
+        '<button class="btn btn-outline" style="padding:8px" onclick="toggleDrawer()">☰</button>' +
+        '<span style="font-weight:600">' + (titles[currentPage] || 'الرئيسية') + '</span>' +
+        '<button class="btn btn-outline" style="padding:8px" onclick="toggleTheme()">' + (theme === 'dark' ? '☀️' : '🌙') + '</button>' +
+      '</header>';
+    }
+    
+    function renderDrawer() {
+      const deliveredRepairs = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = deliveredRepairs.reduce((sum, r) => sum + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+      const debts = deliveredRepairs.reduce((sum, r) => sum + (r.debt || 0), 0);
+      const expenses = Store.data.expenses.reduce((sum, e) => sum + e.amount, 0);
+      
+      const navItems = [
+        { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
+        { id: 'repairs', icon: '🔧', label: 'الصيانة' },
+        { id: 'customers', icon: '👥', label: 'العملاء' },
+        { id: 'inventory', icon: '📦', label: 'المخزون' },
+        { id: 'invoices', icon: '📄', label: 'الفواتير' },
+        { id: 'expenses', icon: '💰', label: 'المصاريف' },
+        { id: 'debts', icon: '💳', label: 'الديون' },
+        { id: 'reports', icon: '📈', label: 'التقارير' },
+        { id: 'backup', icon: '💾', label: 'النسخ الاحتياطي' }
+      ];
+      
+      let html = '<div class="drawer-overlay ' + (drawerOpen ? 'open' : '') + '" onclick="toggleDrawer()"></div>';
+      html += '<div class="drawer ' + (drawerOpen ? 'open' : '') + '">';
+      
+      // Header
+      html += '<div style="padding:16px;border-bottom:1px solid var(--border)">';
+      html += '<div style="display:flex;align-items:center;gap:12px">';
+      html += '<div style="background:var(--primary);padding:10px;border-radius:10px;font-size:24px">📱</div>';
+      html += '<div><div style="font-weight:700;font-size:16px">صيانة موبايل</div><div style="font-size:11px;color:var(--text-muted)">نظام المحاسبة</div></div>';
+      html += '</div></div>';
+      
+      // Quick Stats
+      html += '<div style="padding:12px;border-bottom:1px solid var(--border)">';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      html += '<div style="background:#f0fdf4;padding:10px;border-radius:8px;text-align:center">';
+      html += '<div style="font-size:10px;color:var(--text-muted)">صافي الربح</div>';
+      html += '<div style="font-weight:700;color:#16a34a;font-size:15px">' + formatNumber(profit - expenses) + ' د.أ</div>';
+      html += '</div>';
+      html += '<div style="background:#fef2f2;padding:10px;border-radius:8px;text-align:center">';
+      html += '<div style="font-size:10px;color:var(--text-muted)">الديون</div>';
+      html += '<div style="font-weight:700;color:#dc2626;font-size:15px">' + formatNumber(debts) + ' د.أ</div>';
+      html += '</div>';
+      html += '</div></div>';
+      
+      // Navigation
+      html += '<div style="padding:8px">';
+      navItems.forEach(item => {
+        html += '<button class="nav-item ' + (currentPage === item.id ? 'active' : '') + '" onclick="navigate(\'' + item.id + '\')">';
+        html += '<span style="font-size:16px">' + item.icon + '</span>' + item.label;
+        html += '</button>';
+      });
+      html += '</div>';
+      
+      // Footer
+      html += '<div style="padding:12px;border-top:1px solid var(--border)">';
+      html += '<button class="nav-item" onclick="openDialog(\'export\')"><span style="font-size:16px">📤</span>تصدير البيانات</button>';
+      html += '</div>';
+      
+      html += '</div>';
+      return html;
+    }
+    
+    function renderSidebar() {
+      const navItems = [
+        { id: 'dashboard', icon: '📊', label: 'لوحة التحكم' },
+        { id: 'repairs', icon: '🔧', label: 'الصيانة' },
+        { id: 'customers', icon: '👥', label: 'العملاء' },
+        { id: 'inventory', icon: '📦', label: 'المخزون' },
+        { id: 'invoices', icon: '📄', label: 'الفواتير' },
+        { id: 'expenses', icon: '💰', label: 'المصاريف' },
+        { id: 'debts', icon: '💳', label: 'الديون' },
+        { id: 'reports', icon: '📈', label: 'التقارير' },
+        { id: 'backup', icon: '💾', label: 'النسخ الاحتياطي' }
+      ];
+      
+      let html = '<aside class="desktop-sidebar">';
+      
+      // Logo
+      html += '<div style="padding:16px;border-bottom:1px solid var(--border)">';
+      html += '<div style="display:flex;align-items:center;gap:12px">';
+      html += '<div style="background:var(--primary);padding:10px;border-radius:10px;font-size:24px">📱</div>';
+      html += '<div><div style="font-weight:700">صيانة موبايل</div><div style="font-size:11px;color:var(--text-muted)">نظام المحاسبة</div></div>';
+      html += '</div></div>';
+      
+      // Navigation
+      html += '<div style="padding:8px;flex:1">';
+      navItems.forEach(item => {
+        html += '<button class="nav-item ' + (currentPage === item.id ? 'active' : '') + '" onclick="navigate(\'' + item.id + '\')">';
+        html += '<span style="font-size:16px">' + item.icon + '</span>' + item.label;
+        html += '</button>';
+      });
+      html += '</div>';
+      
+      // Footer
+      html += '<div style="padding:12px;border-top:1px solid var(--border)">';
+      html += '<button class="nav-item" onclick="openDialog(\'export\')"><span style="font-size:16px">📤</span>تصدير</button>';
+      html += '<button class="nav-item" onclick="toggleTheme()"><span style="font-size:16px">' + (theme === 'dark' ? '☀️' : '🌙') + '</span>' + (theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي') + '</button>';
+      html += '<div style="text-align:center;font-size:10px;color:var(--text-muted);margin-top:8px">© 2024</div>';
+      html += '</div>';
+      
+      html += '</aside>';
+      return html;
+    }
+    
+    function renderMain() {
+      return '<main class="main-content"><div style="max-width:1200px;margin:0 auto">' + renderPage() + '</div></main>';
+    }
+    
+    function renderPage() {
+      const pages = {
+        dashboard: renderDashboard,
+        customers: renderCustomers,
+        repairs: renderRepairs,
+        inventory: renderInventory,
+        invoices: renderInvoices,
+        expenses: renderExpenses,
+        debts: renderDebts,
+        reports: renderReports,
+        backup: renderBackup
+      };
+      
+      const renderFunc = pages[currentPage] || pages.dashboard;
+      return renderFunc();
+    }
+    
+    // ==================== صفحات التطبيق ====================
+    function renderDashboard() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.reduce((s, r) => s + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+      const expenses = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      const debts = delivered.reduce((s, r) => s + (r.debt || 0), 0);
+      const pending = Store.data.repairs.filter(r => ['PENDING', 'DIAGNOSING', 'IN_PROGRESS'].includes(r.status)).length;
+      const lowStock = Store.data.inventory.filter(i => i.quantity <= i.minQuantity).length;
+      
+      let html = '<h1 class="page-title" style="display:none">@media(min-width:769px){display:block}لوحة التحكم</h1>';
+      
+      // Stats
+      html += '<div class="stats-grid">';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#f0fdf4">💵</div><div><div class="stat-title">أرباح الصيانة</div><div class="stat-value" style="color:#16a34a">' + formatNumber(profit) + ' د.أ</div></div></div>';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#eff6ff">📊</div><div><div class="stat-title">صافي الربح</div><div class="stat-value" style="color:#2563eb">' + formatNumber(profit - expenses) + ' د.أ</div></div></div>';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#fef2f2">💳</div><div><div class="stat-title">ديون العملاء</div><div class="stat-value" style="color:#dc2626">' + formatNumber(debts) + ' د.أ</div></div></div>';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#faf5ff">🔧</div><div><div class="stat-title">قيد الانتظار</div><div class="stat-value" style="color:#9333ea">' + pending + '</div></div></div>';
+      html += '</div>';
+      
+      // Quick Actions
+      html += '<div class="card"><div class="card-header">إجراءات سريعة</div><div class="card-body"><div style="display:flex;gap:8px;flex-wrap:wrap">';
+      html += '<button class="btn btn-primary" onclick="openDialog(\'repair\')">🔧 طلب صيانة جديد</button>';
+      html += '<button class="btn btn-outline" onclick="openDialog(\'customer\')">👥 عميل جديد</button>';
+      html += '<button class="btn btn-outline" onclick="openDialog(\'expense\')">💰 مصروف جديد</button>';
+      html += '</div></div></div>';
+      
+      // Alerts
+      if (lowStock > 0) {
+        html += '<div class="alert alert-warning"><span>⚠️</span><div>يوجد <strong>' + lowStock + '</strong> صنف بكمية منخفضة في المخزون</div></div>';
+      }
+      
+      // Recent Repairs
+      html += '<div class="card"><div class="card-header">آخر طلبات الصيانة</div><div class="card-body"><div class="table-container"><table class="table">';
+      html += '<thead><tr><th>العميل</th><th>الجهاز</th><th>الحالة</th><th>السعر</th></tr></thead><tbody>';
+      
+      const recentRepairs = Store.data.repairs.slice(-5).reverse();
+      if (recentRepairs.length === 0) {
+        html += '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">لا توجد طلبات صيانة</td></tr>';
+      } else {
+        recentRepairs.forEach(r => {
+          const status = getStatusInfo(r.status);
+          html += '<tr>';
+          html += '<td style="font-weight:500">' + getCustomerName(r.customerId) + '</td>';
+          html += '<td>' + r.deviceModel + '</td>';
+          html += '<td><span class="badge" style="background:' + status.color + ';color:white">' + status.label + '</span></td>';
+          html += '<td>' + formatNumber(r.finalCost || 0) + ' د.أ</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div>';
+      
+      return html;
+    }
+    
+    function renderCustomers() {
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">العملاء</h1>';
+      html += '<button class="btn btn-primary" onclick="openDialog(\'customer\')">+ عميل جديد</button>';
+      html += '</div>';
+      
+      html += '<div class="card"><div class="card-body"><div class="table-container"><table class="table">';
+      html += '<thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th>الإجراءات</th></tr></thead><tbody>';
+      
+      const customers = Store.data.customers;
+      if (customers.length === 0) {
+        html += '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">لا يوجد عملاء</td></tr>';
+      } else {
+        customers.forEach(c => {
+          html += '<tr>';
+          html += '<td style="font-weight:500">' + c.name + '</td>';
+          html += '<td dir="ltr">' + c.phone + '</td>';
+          html += '<td>' + (c.address || '-') + '</td>';
+          html += '<td>';
+          html += '<button class="btn btn-outline btn-sm" onclick="openDialog(\'customer\', \'' + c.id + '\')">تعديل</button> ';
+          html += '<button class="btn btn-outline btn-sm" style="color:#dc2626" onclick="confirmDelete(\'customers\', \'' + c.id + '\')">حذف</button>';
+          html += '</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div>';
+      
+      return html;
+    }
+    
+    function renderRepairs() {
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">طلبات الصيانة</h1>';
+      html += '<button class="btn btn-primary" onclick="openDialog(\'repair\')">+ طلب جديد</button>';
+      html += '</div>';
+      
+      html += '<div class="card"><div class="card-body"><div class="table-container"><table class="table">';
+      html += '<thead><tr><th>العميل</th><th>الجهاز</th><th>المشكلة</th><th>الحالة</th><th>السعر</th><th>الإجراءات</th></tr></thead><tbody>';
+      
+      const repairs = Store.data.repairs;
+      if (repairs.length === 0) {
+        html += '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">لا توجد طلبات صيانة</td></tr>';
+      } else {
+        repairs.forEach(r => {
+          const status = getStatusInfo(r.status);
+          html += '<tr>';
+          html += '<td style="font-weight:500">' + getCustomerName(r.customerId) + '</td>';
+          html += '<td>' + r.deviceModel + '</td>';
+          html += '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">' + (r.problem || '-') + '</td>';
+          html += '<td><span class="badge" style="background:' + status.color + ';color:white">' + status.label + '</span></td>';
+          html += '<td>' + formatNumber(r.finalCost || 0) + ' د.أ</td>';
+          html += '<td>';
+          if (r.status === 'COMPLETED') {
+            html += '<button class="btn btn-success btn-sm" onclick="openDialog(\'delivery\', \'' + r.id + '\')">تسليم</button> ';
+          }
+          html += '<button class="btn btn-outline btn-sm" onclick="openDialog(\'repair\', \'' + r.id + '\')">تعديل</button> ';
+          html += '<button class="btn btn-outline btn-sm" style="color:#dc2626" onclick="confirmDelete(\'repairs\', \'' + r.id + '\')">حذف</button>';
+          html += '</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div>';
+      
+      return html;
+    }
+    
+    function renderInventory() {
+      const lowStockItems = Store.data.inventory.filter(i => i.quantity <= i.minQuantity);
+      
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">المخزون</h1>';
+      html += '<button class="btn btn-primary" onclick="openDialog(\'inventory\')">+ إضافة صنف</button>';
+      html += '</div>';
+      
+      if (lowStockItems.length > 0) {
+        html += '<div class="alert alert-warning"><span>⚠️</span><div>يوجد <strong>' + lowStockItems.length + '</strong> صنف بكمية منخفضة</div></div>';
+      }
+      
+      html += '<div class="card"><div class="card-body"><div class="table-container"><table class="table">';
+      html += '<thead><tr><th>الاسم</th><th>الفئة</th><th>الكمية</th><th>سعر الشراء</th><th>سعر البيع</th><th>الإجراءات</th></tr></thead><tbody>';
+      
+      const items = Store.data.inventory;
+      if (items.length === 0) {
+        html += '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">لا يوجد مخزون</td></tr>';
+      } else {
+        items.forEach(i => {
+          const isLow = i.quantity <= i.minQuantity;
+          html += '<tr style="' + (isLow ? 'background:#fef2f2' : '') + '">';
+          html += '<td style="font-weight:500">' + i.name + '</td>';
+          html += '<td>' + i.category + '</td>';
+          html += '<td style="' + (isLow ? 'color:#dc2626;font-weight:700' : '') + '">' + i.quantity + (isLow ? ' ⚠️' : '') + '</td>';
+          html += '<td>' + formatNumber(i.costPrice) + ' د.أ</td>';
+          html += '<td>' + formatNumber(i.sellingPrice) + ' د.أ</td>';
+          html += '<td>';
+          html += '<button class="btn btn-outline btn-sm" onclick="openDialog(\'inventory\', \'' + i.id + '\')">تعديل</button> ';
+          html += '<button class="btn btn-outline btn-sm" style="color:#dc2626" onclick="confirmDelete(\'inventory\', \'' + i.id + '\')">حذف</button>';
+          html += '</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div>';
+      
+      return html;
+    }
+    
+    function renderInvoices() {
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">الفواتير</h1>';
+      html += '</div>';
+      
+      html += '<div class="card"><div class="card-body"><div class="table-container"><table class="table">';
+      html += '<thead><tr><th>رقم</th><th>العميل</th><th>المجموع</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>';
+      
+      const invoices = Store.data.invoices;
+      if (invoices.length === 0) {
+        html += '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">لا توجد فواتير</td></tr>';
+      } else {
+        invoices.forEach(inv => {
+          html += '<tr>';
+          html += '<td style="font-weight:500">' + inv.invoiceNumber + '</td>';
+          html += '<td>' + getCustomerName(inv.customerId) + '</td>';
+          html += '<td>' + formatNumber(inv.total) + ' د.أ</td>';
+          html += '<td><span class="badge" style="background:' + (inv.status === 'PAID' ? '#22c55e' : '#f59e0b') + ';color:white">' + (inv.status === 'PAID' ? 'مدفوعة' : 'معلقة') + '</span></td>';
+          html += '<td>' + formatDate(inv.date) + '</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div>';
+      
+      return html;
+    }
+    
+    function renderExpenses() {
+      const total = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">المصاريف</h1>';
+      html += '<button class="btn btn-primary" onclick="openDialog(\'expense\')">+ مصروف جديد</button>';
+      html += '</div>';
+      
+      html += '<div class="stats-grid">';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#fef2f2">💸</div><div><div class="stat-title">إجمالي المصاريف</div><div class="stat-value" style="color:#dc2626">' + formatNumber(total) + ' د.أ</div></div></div>';
+      html += '</div>';
+      
+      html += '<div class="card"><div class="card-body"><div class="table-container"><table class="table">';
+      html += '<thead><tr><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th>التاريخ</th><th>الإجراءات</th></tr></thead><tbody>';
+      
+      const expenses = Store.data.expenses;
+      if (expenses.length === 0) {
+        html += '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">لا توجد مصاريف</td></tr>';
+      } else {
+        expenses.forEach(e => {
+          html += '<tr>';
+          html += '<td style="font-weight:500">' + e.category + '</td>';
+          html += '<td>' + e.description + '</td>';
+          html += '<td style="color:#dc2626;font-weight:600">' + formatNumber(e.amount) + ' د.أ</td>';
+          html += '<td>' + formatDate(e.date) + '</td>';
+          html += '<td>';
+          html += '<button class="btn btn-outline btn-sm" onclick="openDialog(\'expense\', \'' + e.id + '\')">تعديل</button> ';
+          html += '<button class="btn btn-outline btn-sm" style="color:#dc2626" onclick="confirmDelete(\'expenses\', \'' + e.id + '\')">حذف</button>';
+          html += '</td>';
+          html += '</tr>';
+        });
+      }
+      html += '</tbody></table></div></div></div>';
+      
+      return html;
+    }
+    
+    function renderDebts() {
+      const debtsList = Store.data.repairs.filter(r => r.status === 'DELIVERED' && r.debt > 0);
+      const total = debtsList.reduce((s, r) => s + r.debt, 0);
+      
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">الديون</h1>';
+      html += '</div>';
+      
+      html += '<div class="stat-card" style="background:#fef2f2;margin-bottom:16px">';
+      html += '<div class="stat-icon" style="background:#dc2626;color:white">💳</div>';
+      html += '<div><div class="stat-title">إجمالي الديون</div><div class="stat-value" style="color:#dc2626">' + formatNumber(total) + ' د.أ</div></div>';
+      html += '</div>';
+      
+      html += '<div class="card"><div class="card-body">';
+      
+      if (debtsList.length === 0) {
+        html += '<div class="empty-state">';
+        html += '<div class="empty-state-icon">✅</div>';
+        html += '<p>لا توجد ديون - جميع العملاء مسددين!</p>';
+        html += '</div>';
+      } else {
+        html += '<div class="table-container"><table class="table">';
+        html += '<thead><tr><th>العميل</th><th>الجهاز</th><th>الدين</th><th>تاريخ التسليم</th><th>الإجراءات</th></tr></thead><tbody>';
+        
+        debtsList.forEach(d => {
+          html += '<tr>';
+          html += '<td style="font-weight:500">' + getCustomerName(d.customerId) + '</td>';
+          html += '<td>' + d.deviceModel + '</td>';
+          html += '<td><span class="badge" style="background:#dc2626;color:white">' + formatNumber(d.debt) + ' د.أ</span></td>';
+          html += '<td>' + formatDate(d.deliveredAt) + '</td>';
+          html += '<td><button class="btn btn-success btn-sm" onclick="payDebt(\'' + d.id + '\')">تسديد</button></td>';
+          html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+      }
+      
+      html += '</div></div>';
+      
+      return html;
+    }
+    
+    function renderReports() {
+      const delivered = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = delivered.reduce((s, r) => s + ((r.finalCost || 0) - (r.maintenanceCost || 0)), 0);
+      const expenses = Store.data.expenses.reduce((s, e) => s + e.amount, 0);
+      const debts = delivered.reduce((s, r) => s + (r.debt || 0), 0);
+      
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">التقارير</h1>';
+      html += '<button class="btn btn-success" onclick="openDialog(\'export\')">📤 تصدير</button>';
+      html += '</div>';
+      
+      // Stats
+      html += '<div class="stats-grid">';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#f0fdf4">💵</div><div><div class="stat-title">أرباح الصيانة</div><div class="stat-value" style="color:#16a34a">' + formatNumber(profit) + ' د.أ</div></div></div>';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#fef2f2">💸</div><div><div class="stat-title">المصاريف</div><div class="stat-value" style="color:#dc2626">' + formatNumber(expenses) + ' د.أ</div></div></div>';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#eff6ff">📊</div><div><div class="stat-title">صافي الربح</div><div class="stat-value" style="color:#2563eb">' + formatNumber(profit - expenses) + ' د.أ</div></div></div>';
+      html += '<div class="stat-card"><div class="stat-icon" style="background:#fff7ed">💳</div><div><div class="stat-title">الديون</div><div class="stat-value" style="color:#ea580c">' + formatNumber(debts) + ' د.أ</div></div></div>';
+      html += '</div>';
+      
+      // Calculation Card
+      html += '<div class="card" style="background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:none;margin-bottom:16px">';
+      html += '<div class="card-body">';
+      html += '<h3 style="font-weight:700;margin-bottom:12px">📐 طريقة حساب الأرباح</h3>';
+      html += '<div class="grid-2" style="gap:12px">';
+      html += '<div style="padding:12px;background:rgba(255,255,255,0.8);border-radius:8px">';
+      html += '<div style="font-weight:500;color:#16a34a">+ أرباح الصيانة</div>';
+      html += '<div style="font-size:11px;color:var(--text-muted)">السعر النهائي - تكلفة الصيانة</div>';
+      html += '<div style="font-weight:700">' + formatNumber(profit) + ' د.أ</div>';
+      html += '</div>';
+      html += '<div style="padding:12px;background:rgba(255,255,255,0.8);border-radius:8px">';
+      html += '<div style="font-weight:500;color:#dc2626">- المصاريف</div>';
+      html += '<div style="font-size:11px;color:var(--text-muted)">إيجار، كهرباء، رواتب...</div>';
+      html += '<div style="font-weight:700">' + formatNumber(expenses) + ' د.أ</div>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div style="padding:12px;background:rgba(255,255,255,0.95);border-radius:8px;margin-top:12px;text-align:center">';
+      html += '<div style="font-weight:500;color:#2563eb">= صافي الربح</div>';
+      html += '<div style="font-weight:700;font-size:22px;color:#2563eb">' + formatNumber(profit - expenses) + ' د.أ</div>';
+      html += '</div>';
+      html += '</div></div>';
+      
+      // Charts
+      html += '<div style="display:grid;grid-template-columns:1fr;gap:16px">';
+      html += '@media(min-width:1024px){grid-template-columns:1fr 1fr}';
+      
+      // Status Chart
+      html += '<div class="card"><div class="card-header">حالات الصيانة</div><div class="card-body">';
+      html += '<div class="chart-container"><canvas id="statusChart"></canvas></div>';
+      html += '<div id="statusLegend" class="chart-legend"></div>';
+      html += '</div></div>';
+      
+      // Device Chart
+      html += '<div class="card"><div class="card-header">أنواع الأجهزة</div><div class="card-body">';
+      html += '<div class="chart-container"><canvas id="deviceChart"></canvas></div>';
+      html += '<div id="deviceLegend" class="chart-legend"></div>';
+      html += '</div></div>';
+      
+      html += '</div>';
+      
+      // Initialize charts after render
+      setTimeout(initCharts, 100);
+      
+      return html;
+    }
+    
+    function renderBackup() {
+      let html = '<div class="page-header">';
+      html += '<h1 class="page-title">النسخ الاحتياطي</h1>';
+      html += '</div>';
+      
+      html += '<div class="grid-2" style="margin-bottom:16px">';
+      
+      // Create Backup
+      html += '<div class="card"><div class="card-header">💾 إنشاء نسخة</div><div class="card-body">';
+      html += '<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">قم بتصدير جميع البيانات كملف JSON</p>';
+      html += '<button class="btn btn-primary btn-block" onclick="createBackup()">إنشاء نسخة احتياطية</button>';
+      html += '</div></div>';
+      
+      // Restore Backup
+      html += '<div class="card"><div class="card-header">📥 استرجاع نسخة</div><div class="card-body">';
+      html += '<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">اختر ملف نسخة احتياطية لاسترجاعه</p>';
+      html += '<input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">';
+      html += '<button class="btn btn-outline btn-block" onclick="document.getElementById(\'backupFile\').click()">اختيار ملف</button>';
+      html += '</div></div>';
+      
+      html += '</div>';
+      
+      // Warning
+      html += '<div class="alert alert-warning">';
+      html += '<span style="font-size:24px">⚠️</span>';
+      html += '<div><strong>تحذير!</strong><br>استرجاع النسخة الاحتياطية سيحل محل جميع البيانات الحالية. تأكد من إنشاء نسخة احتياطية قبل الاسترجاع.</div>';
+      html += '</div>';
+      
+      // Data Info
+      html += '<div class="card"><div class="card-header">📊 معلومات البيانات</div><div class="card-body">';
+      html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">';
+      html += '<div>العملاء: <strong>' + Store.data.customers.length + '</strong></div>';
+      html += '<div>طلبات الصيانة: <strong>' + Store.data.repairs.length + '</strong></div>';
+      html += '<div>أصناف المخزون: <strong>' + Store.data.inventory.length + '</strong></div>';
+      html += '<div>المصاريف: <strong>' + Store.data.expenses.length + '</strong></div>';
+      html += '</div></div></div>';
+      
+      // Clear Data
+      html += '<div class="card" style="border-color:#dc2626"><div class="card-body">';
+      html += '<button class="btn btn-danger btn-block" onclick="clearAllData()">🗑️ مسح جميع البيانات</button>';
+      html += '</div></div>';
+      
+      return html;
+    }
+    
+    // ==================== الرسوم البيانية ====================
+    function initCharts() {
+      // Status Chart
+      const statusCanvas = document.getElementById('statusChart');
+      if (statusCanvas) {
+        const counts = {};
+        Store.data.repairs.forEach(r => {
+          counts[r.status] = (counts[r.status] || 0) + 1;
+        });
+        
+        const data = STATUS_LIST.filter(s => counts[s.value] > 0).map(s => ({
+          label: s.label,
+          value: counts[s.value],
+          color: s.color
+        }));
+        
+        if (data.length > 0 && window.Chart) {
+          new Chart(statusCanvas, {
+            type: 'pie',
+            data: {
+              labels: data.map(d => d.label),
+              datasets: [{
+                data: data.map(d => d.value),
+                backgroundColor: data.map(d => d.color)
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+          
+          // Legend
+          const legend = document.getElementById('statusLegend');
+          if (legend) {
+            legend.innerHTML = data.map(d => 
+              '<span class="legend-item"><span class="legend-dot" style="background:' + d.color + '"></span>' + d.label + ': ' + d.value + '</span>'
+            ).join('');
+          }
+        }
+      }
+      
+      // Device Chart
+      const deviceCanvas = document.getElementById('deviceChart');
+      if (deviceCanvas) {
+        const counts = {};
+        Store.data.repairs.forEach(r => {
+          counts[r.deviceType] = (counts[r.deviceType] || 0) + 1;
+        });
+        
+        const sortedData = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+        
+        if (sortedData.length > 0 && window.Chart) {
+          new Chart(deviceCanvas, {
+            type: 'pie',
+            data: {
+              labels: sortedData.map(d => d[0]),
+              datasets: [{
+                data: sortedData.map(d => d[1]),
+                backgroundColor: colors.slice(0, sortedData.length)
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+          
+          // Legend
+          const legend = document.getElementById('deviceLegend');
+          if (legend) {
+            legend.innerHTML = sortedData.map((d, i) => 
+              '<span class="legend-item"><span class="legend-dot" style="background:' + colors[i] + '"></span>' + d[0] + ': ' + d[1] + '</span>'
+            ).join('');
+          }
+        }
+      }
+    }
+    
+    // ==================== النوافذ المنبثقة (Dialogs) ====================
+    function renderDialogs() {
+      let html = '';
+      
+      // Export Dialog
+      if (currentDialog === 'export') {
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title">📤 تصدير البيانات</h2>';
+        html += '<div style="display:flex;flex-direction:column;gap:8px">';
+        html += '<button class="btn btn-outline btn-block" onclick="exportExcel()">📊 تصدير إلى Excel</button>';
+        html += '<button class="btn btn-outline btn-block" onclick="exportJSON()">📄 تصدير إلى JSON</button>';
+        html += '</div>';
+        html += '<div class="dialog-footer"><button class="btn btn-outline" onclick="closeDialog()">إغلاق</button></div>';
+        html += '</div></div>';
+      }
+      
+      // Customer Dialog
+      if (currentDialog === 'customer') {
+        const c = dialogData || {};
+        const isEdit = !!c.id;
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title">' + (isEdit ? '✏️ تعديل عميل' : '➕ عميل جديد') + '</h2>';
+        html += '<form onsubmit="saveCustomer(event)">';
+        html += '<input type="hidden" id="customerId" value="' + (c.id || '') + '">';
+        html += '<div class="form-group"><label class="label">الاسم *</label><input type="text" id="customerName" class="input" value="' + (c.name || '') + '" required></div>';
+        html += '<div class="form-group"><label class="label">رقم الهاتف *</label><input type="tel" id="customerPhone" class="input" value="' + (c.phone || '') + '" required dir="ltr"></div>';
+        html += '<div class="form-group"><label class="label">العنوان</label><input type="text" id="customerAddress" class="input" value="' + (c.address || '') + '"></div>';
+        html += '<div class="form-group"><label class="label">ملاحظات</label><textarea id="customerNotes" class="input">' + (c.notes || '') + '</textarea></div>';
+        html += '<div class="dialog-footer">';
+        html += '<button type="button" class="btn btn-outline" onclick="closeDialog()">إلغاء</button>';
+        html += '<button type="submit" class="btn btn-primary">حفظ</button>';
+        html += '</div></form>';
+        html += '</div></div>';
+      }
+      
+      // Repair Dialog
+      if (currentDialog === 'repair') {
+        const r = dialogData || {};
+        const isEdit = !!r.id;
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" style="max-width:550px" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title">' + (isEdit ? '✏️ تعديل طلب' : '➕ طلب صيانة جديد') + '</h2>';
+        html += '<form onsubmit="saveRepair(event)">';
+        html += '<input type="hidden" id="repairId" value="' + (r.id || '') + '">';
+        
+        html += '<div class="grid-2">';
+        html += '<div class="form-group"><label class="label">العميل *</label><select id="repairCustomer" class="input" required>';
+        html += '<option value="">اختر العميل</option>';
+        Store.data.customers.forEach(c => {
+          html += '<option value="' + c.id + '"' + (r.customerId === c.id ? ' selected' : '') + '>' + c.name + '</option>';
+        });
+        html += '</select></div>';
+        
+        html += '<div class="form-group"><label class="label">نوع الجهاز *</label><select id="repairDeviceType" class="input" required>';
+        html += '<option value="">اختر النوع</option>';
+        DEVICE_TYPES.forEach(d => {
+          html += '<option value="' + d + '"' + (r.deviceType === d ? ' selected' : '') + '>' + d + '</option>';
+        });
+        html += '</select></div>';
+        html += '</div>';
+        
+        html += '<div class="grid-2">';
+        html += '<div class="form-group"><label class="label">الموديل *</label><input type="text" id="repairDeviceModel" class="input" value="' + (r.deviceModel || '') + '" required></div>';
+        html += '<div class="form-group"><label class="label">الحالة</label><select id="repairStatus" class="input">';
+        STATUS_LIST.forEach(s => {
+          html += '<option value="' + s.value + '"' + (r.status === s.value ? ' selected' : '') + '>' + s.label + '</option>';
+        });
+        html += '</select></div>';
+        html += '</div>';
+        
+        html += '<div class="form-group"><label class="label">المشكلة *</label><textarea id="repairProblem" class="input" required>' + (r.problem || '') + '</textarea></div>';
+        
+        html += '<div class="grid-2">';
+        html += '<div class="form-group"><label class="label">العربون (د.أ)</label><input type="number" id="repairDeposit" class="input" value="' + (r.deposit || 0) + '" min="0"></div>';
+        html += '<div class="form-group"><label class="label">تكلفة الصيانة (د.أ)</label><input type="number" id="repairMaintenanceCost" class="input" value="' + (r.maintenanceCost || '') + '" min="0"></div>';
+        html += '</div>';
+        
+        html += '<div class="form-group"><label class="label">السعر النهائي (د.أ)</label><input type="number" id="repairFinalCost" class="input" value="' + (r.finalCost || '') + '" min="0"></div>';
+        
+        html += '<div class="dialog-footer">';
+        html += '<button type="button" class="btn btn-outline" onclick="closeDialog()">إلغاء</button>';
+        html += '<button type="submit" class="btn btn-primary">حفظ</button>';
+        html += '</div></form>';
+        html += '</div></div>';
+      }
+      
+      // Inventory Dialog
+      if (currentDialog === 'inventory') {
+        const i = dialogData || {};
+        const isEdit = !!i.id;
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title">' + (isEdit ? '✏️ تعديل صنف' : '➕ إضافة صنف') + '</h2>';
+        html += '<form onsubmit="saveInventory(event)">';
+        html += '<input type="hidden" id="inventoryId" value="' + (i.id || '') + '">';
+        html += '<div class="form-group"><label class="label">اسم الصنف *</label><input type="text" id="inventoryName" class="input" value="' + (i.name || '') + '" required></div>';
+        html += '<div class="form-group"><label class="label">الفئة *</label><input type="text" id="inventoryCategory" class="input" value="' + (i.category || '') + '" required placeholder="مثال: شاشات، بطاريات، إكسسوارات"></div>';
+        html += '<div class="grid-2">';
+        html += '<div class="form-group"><label class="label">الكمية</label><input type="number" id="inventoryQuantity" class="input" value="' + (i.quantity || 0) + '" min="0"></div>';
+        html += '<div class="form-group"><label class="label">الحد الأدنى</label><input type="number" id="inventoryMinQuantity" class="input" value="' + (i.minQuantity || 5) + '" min="0"></div>';
+        html += '</div>';
+        html += '<div class="grid-2">';
+        html += '<div class="form-group"><label class="label">سعر الشراء (د.أ)</label><input type="number" id="inventoryCostPrice" class="input" value="' + (i.costPrice || 0) + '" min="0"></div>';
+        html += '<div class="form-group"><label class="label">سعر البيع (د.أ)</label><input type="number" id="inventorySellingPrice" class="input" value="' + (i.sellingPrice || 0) + '" min="0"></div>';
+        html += '</div>';
+        html += '<div class="dialog-footer">';
+        html += '<button type="button" class="btn btn-outline" onclick="closeDialog()">إلغاء</button>';
+        html += '<button type="submit" class="btn btn-primary">حفظ</button>';
+        html += '</div></form>';
+        html += '</div></div>';
+      }
+      
+      // Expense Dialog
+      if (currentDialog === 'expense') {
+        const e = dialogData || {};
+        const isEdit = !!e.id;
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title">' + (isEdit ? '✏️ تعديل مصروف' : '➕ مصروف جديد') + '</h2>';
+        html += '<form onsubmit="saveExpense(event)">';
+        html += '<input type="hidden" id="expenseId" value="' + (e.id || '') + '">';
+        html += '<div class="form-group"><label class="label">الفئة *</label><select id="expenseCategory" class="input" required>';
+        html += '<option value="">اختر الفئة</option>';
+        EXPENSE_CATEGORIES.forEach(c => {
+          html += '<option value="' + c + '"' + (e.category === c ? ' selected' : '') + '>' + c + '</option>';
+        });
+        html += '</select></div>';
+        html += '<div class="form-group"><label class="label">الوصف *</label><input type="text" id="expenseDescription" class="input" value="' + (e.description || '') + '" required></div>';
+        html += '<div class="form-group"><label class="label">المبلغ (د.أ) *</label><input type="number" id="expenseAmount" class="input" value="' + (e.amount || '') + '" required min="0"></div>';
+        html += '<div class="dialog-footer">';
+        html += '<button type="button" class="btn btn-outline" onclick="closeDialog()">إلغاء</button>';
+        html += '<button type="submit" class="btn btn-primary">حفظ</button>';
+        html += '</div></form>';
+        html += '</div></div>';
+      }
+      
+      // Delivery Dialog
+      if (currentDialog === 'delivery') {
+        const r = dialogData;
+        const remaining = (r.finalCost || 0) - (r.deposit || 0);
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title">📦 تأكيد التسليم</h2>';
+        
+        html += '<div style="background:var(--bg);padding:14px;border-radius:8px;margin-bottom:14px">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted)">العميل:</span><span style="font-weight:500">' + getCustomerName(r.customerId) + '</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted)">الجهاز:</span><span>' + r.deviceModel + '</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted)">السعر النهائي:</span><span style="font-weight:700;color:#2563eb">' + formatNumber(r.finalCost || 0) + ' د.أ</span></div>';
+        html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">العربون:</span><span style="color:#22c55e">' + formatNumber(r.deposit || 0) + ' د.أ</span></div>';
+        html += '</div>';
+        
+        html += '<div style="background:#fffbeb;padding:12px;border-radius:8px;border:1px solid #fcd34d;margin-bottom:14px">';
+        html += '<div style="display:flex;justify-content:space-between"><span style="color:#92400e">المتبقي:</span><span style="font-weight:700;color:#d97706">' + formatNumber(remaining) + ' د.أ</span></div>';
+        html += '</div>';
+        
+        html += '<form onsubmit="confirmDelivery(event)">';
+        html += '<div class="form-group"><label class="label">المبلغ المدفوع</label><input type="number" id="deliveryPaidAmount" class="input" value="' + remaining + '" min="0"></div>';
+        html += '<div class="form-group"><label class="label">الدين (إن وجد)</label><input type="number" id="deliveryDebt" class="input" value="0" min="0"></div>';
+        html += '<div class="dialog-footer">';
+        html += '<button type="button" class="btn btn-outline" onclick="closeDialog()">إلغاء</button>';
+        html += '<button type="submit" class="btn btn-success">✓ تأكيد التسليم</button>';
+        html += '</div></form>';
+        html += '</div></div>';
+      }
+      
+      // Confirm Delete Dialog
+      if (currentDialog === 'confirm') {
+        html += '<div class="dialog-overlay open" onclick="closeDialog()"><div class="dialog" style="max-width:350px" onclick="event.stopPropagation()">';
+        html += '<h2 class="dialog-title" style="color:#dc2626">🗑️ تأكيد الحذف</h2>';
+        html += '<p style="color:var(--text-muted);margin-bottom:16px">' + (dialogData?.message || 'هل أنت متأكد من الحذف؟') + '</p>';
+        html += '<div class="dialog-footer">';
+        html += '<button class="btn btn-outline" onclick="closeDialog()">إلغاء</button>';
+        html += '<button class="btn btn-danger" onclick="executeDelete()">حذف</button>';
+        html += '</div>';
+        html += '</div></div>';
+      }
+      
+      return html;
+    }
+    
+    // ==================== إجراءات النماذج ====================
+    function saveCustomer(e) {
+      e.preventDefault();
+      const id = document.getElementById('customerId').value;
+      const data = {
+        name: document.getElementById('customerName').value.trim(),
+        phone: document.getElementById('customerPhone').value.trim(),
+        address: document.getElementById('customerAddress').value.trim(),
+        notes: document.getElementById('customerNotes').value.trim()
+      };
+      
+      if (id) {
+        Store.update('customers', id, data);
+        showToast('تم تحديث العميل');
+      } else {
+        Store.add('customers', data);
+        showToast('تم إضافة العميل');
+      }
+      closeDialog();
+    }
+    
+    function saveRepair(e) {
+      e.preventDefault();
+      const id = document.getElementById('repairId').value;
+      const data = {
+        customerId: document.getElementById('repairCustomer').value,
+        deviceType: document.getElementById('repairDeviceType').value,
+        deviceModel: document.getElementById('repairDeviceModel').value.trim(),
+        problem: document.getElementById('repairProblem').value.trim(),
+        status: document.getElementById('repairStatus').value,
+        deposit: parseFloat(document.getElementById('repairDeposit').value) || 0,
+        maintenanceCost: parseFloat(document.getElementById('repairMaintenanceCost').value) || null,
+        finalCost: parseFloat(document.getElementById('repairFinalCost').value) || null
+      };
+      
+      if (id) {
+        Store.update('repairs', id, data);
+        showToast('تم تحديث الطلب');
+      } else {
+        Store.add('repairs', data);
+        showToast('تم إضافة الطلب');
+      }
+      closeDialog();
+    }
+    
+    function saveInventory(e) {
+      e.preventDefault();
+      const id = document.getElementById('inventoryId').value;
+      const data = {
+        name: document.getElementById('inventoryName').value.trim(),
+        category: document.getElementById('inventoryCategory').value.trim(),
+        quantity: parseInt(document.getElementById('inventoryQuantity').value) || 0,
+        minQuantity: parseInt(document.getElementById('inventoryMinQuantity').value) || 5,
+        costPrice: parseFloat(document.getElementById('inventoryCostPrice').value) || 0,
+        sellingPrice: parseFloat(document.getElementById('inventorySellingPrice').value) || 0
+      };
+      
+      if (id) {
+        Store.update('inventory', id, data);
+        showToast('تم تحديث الصنف');
+      } else {
+        Store.add('inventory', data);
+        showToast('تم إضافة الصنف');
+      }
+      closeDialog();
+    }
+    
+    function saveExpense(e) {
+      e.preventDefault();
+      const id = document.getElementById('expenseId').value;
+      const data = {
+        category: document.getElementById('expenseCategory').value,
+        description: document.getElementById('expenseDescription').value.trim(),
+        amount: parseFloat(document.getElementById('expenseAmount').value) || 0,
+        date: new Date().toISOString()
+      };
+      
+      if (id) {
+        Store.update('expenses', id, data);
+        showToast('تم تحديث المصروف');
+      } else {
+        Store.add('expenses', data);
+        showToast('تم إضافة المصروف');
+      }
+      closeDialog();
+    }
+    
+    function confirmDelivery(e) {
+      e.preventDefault();
+      const paid = parseFloat(document.getElementById('deliveryPaidAmount').value) || 0;
+      const debt = parseFloat(document.getElementById('deliveryDebt').value) || 0;
+      
+      Store.update('repairs', dialogData.id, {
+        status: 'DELIVERED',
+        paidAmount: paid,
+        debt: debt,
+        deliveredAt: new Date().toISOString()
+      });
+      
+      showToast('تم تأكيد التسليم');
+      closeDialog();
+    }
+    
+    // ==================== الإجراءات العامة ====================
+    function navigate(page) {
+      currentPage = page;
+      drawerOpen = false;
+      render();
+    }
+    
+    function toggleDrawer() {
+      drawerOpen = !drawerOpen;
+      render();
+    }
+    
+    function toggleTheme() {
+      theme = theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', theme);
+      render();
+    }
+    
+    function openDialog(type, id) {
+      currentDialog = type;
+      
+      if (type === 'customer' && id) {
+        dialogData = Store.get('customers', id);
+      } else if (type === 'repair' && id) {
+        dialogData = Store.get('repairs', id);
+      } else if (type === 'inventory' && id) {
+        dialogData = Store.get('inventory', id);
+      } else if (type === 'expense' && id) {
+        dialogData = Store.get('expenses', id);
+      } else if (type === 'delivery' && id) {
+        dialogData = Store.get('repairs', id);
+      } else {
+        dialogData = null;
+      }
+      
+      render();
+    }
+    
+    function closeDialog() {
+      currentDialog = null;
+      dialogData = null;
+      deleteCallback = null;
+      render();
+    }
+    
+    function confirmDelete(collection, id) {
+      let itemName = '';
+      if (collection === 'customers') {
+        const c = Store.get('customers', id);
+        itemName = c ? c.name : 'هذا العميل';
+      } else if (collection === 'repairs') {
+        itemName = 'هذا الطلب';
+      } else if (collection === 'inventory') {
+        const i = Store.get('inventory', id);
+        itemName = i ? i.name : 'هذا الصنف';
+      } else if (collection === 'expenses') {
+        itemName = 'هذا المصروف';
+      }
+      
+      currentDialog = 'confirm';
+      dialogData = { collection, id, message: 'هل أنت متأكد من حذف "' + itemName + '"؟' };
+      render();
+    }
+    
+    function executeDelete() {
+      if (dialogData && dialogData.collection && dialogData.id) {
+        Store.delete(dialogData.collection, dialogData.id);
+        showToast('تم الحذف');
+      }
+      closeDialog();
+    }
+    
+    function payDebt(repairId) {
+      const repair = Store.get('repairs', repairId);
+      if (repair && repair.debt > 0) {
+        Store.update('repairs', repairId, {
+          paidAmount: (repair.paidAmount || 0) + repair.debt,
+          debt: 0
+        });
+        showToast('تم تسديد الدين');
+        render();
+      }
+    }
+    
+    // ==================== النسخ الاحتياطي والتصدير ====================
+    function createBackup() {
+      const backup = {
+        version: '2.0',
+        date: new Date().toISOString(),
+        app: 'Mobile Repair Accounting System',
+        data: Store.data
+      };
+      
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'backup_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('تم إنشاء النسخة الاحتياطية');
+    }
+    
+    function restoreBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const backup = JSON.parse(ev.target.result);
+          if (backup.data) {
+            if (confirm('سيتم استبدال جميع البيانات الحالية. هل أنت متأكد؟')) {
+              Store.data = backup.data;
+              Store.save();
+              render();
+              showToast('تم استرجاع النسخة الاحتياطية');
+            }
+          } else {
+            showToast('ملف غير صالح');
+          }
+        } catch(err) {
+          showToast('خطأ في قراءة الملف');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+    
+    function clearAllData() {
+      if (confirm('هل أنت متأكد من مسح جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+        if (confirm('تأكيد نهائي: سيتم حذف جميع العملاء والطلبات والمخزون والمصاريف!')) {
+          localStorage.removeItem('mobileRepairAppData');
+          Store.data = { customers: [], repairs: [], inventory: [], invoices: [], expenses: [] };
+          render();
+          showToast('تم مسح جميع البيانات');
+        }
+      }
+    }
+    
+    function exportExcel() {
+      // Create CSV content
+      let csv = '\ufeff'; // BOM for Arabic support
+      
+      // Customers
+      csv += 'العملاء\n';
+      csv += '#,الاسم,الهاتف,العنوان,ملاحظات\n';
+      Store.data.customers.forEach((c, i) => {
+        csv += (i+1) + ',' + (c.name || '') + ',' + (c.phone || '') + ',' + (c.address || '') + ',' + (c.notes || '') + '\n';
+      });
+      csv += '\n';
+      
+      // Repairs
+      csv += 'طلبات الصيانة\n';
+      csv += '#,العميل,نوع الجهاز,الموديل,المشكلة,الحالة,العربون,التكلفة,السعر النهائي\n';
+      Store.data.repairs.forEach((r, i) => {
+        const status = getStatusInfo(r.status);
+        csv += (i+1) + ',' + getCustomerName(r.customerId) + ',' + (r.deviceType || '') + ',' + (r.deviceModel || '') + ',' + (r.problem || '') + ',' + status.label + ',' + (r.deposit || 0) + ',' + (r.maintenanceCost || 0) + ',' + (r.finalCost || 0) + '\n';
+      });
+      csv += '\n';
+      
+      // Inventory
+      csv += 'المخزون\n';
+      csv += '#,الاسم,الفئة,الكمية,الحد الأدنى,سعر الشراء,سعر البيع\n';
+      Store.data.inventory.forEach((item, i) => {
+        csv += (i+1) + ',' + (item.name || '') + ',' + (item.category || '') + ',' + (item.quantity || 0) + ',' + (item.minQuantity || 0) + ',' + (item.costPrice || 0) + ',' + (item.sellingPrice || 0) + '\n';
+      });
+      csv += '\n';
+      
+      // Expenses
+      csv += 'المصاريف\n';
+      csv += '#,الفئة,الوصف,المبلغ,التاريخ\n';
+      Store.data.expenses.forEach((e, i) => {
+        csv += (i+1) + ',' + (e.category || '') + ',' + (e.description || '') + ',' + (e.amount || 0) + ',' + formatDate(e.date) + '\n';
+      });
+      
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mobile_repair_report_' + new Date().toISOString().split('T')[0] + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('تم تصدير البيانات');
+      closeDialog();
+    }
+    
+    function exportJSON() {
+      const data = {
+        exportDate: new Date().toISOString(),
+        customers: Store.data.customers,
+        repairs: Store.data.repairs,
+        inventory: Store.data.inventory,
+        invoices: Store.data.invoices,
+        expenses: Store.data.expenses
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mobile_repair_data_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('تم تصدير البيانات');
+      closeDialog();
+    }
+    
+    // ==================== تهيئة التطبيق ====================
+    document.addEventListener('DOMContentLoaded', function() {
+      render();
+    });
+    
+    // Handle back button
+    window.addEventListener('popstate', function() {
+      if (currentDialog) {
+        closeDialog();
+      } else if (drawerOpen) {
+        toggleDrawer();
+      }
+    });
+    
+    // Initial render
+    render();
+  </script>
+  
+  <!-- Chart.js for Reports -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</body>
+</html>

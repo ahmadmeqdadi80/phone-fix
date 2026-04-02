@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>نظام محاسبة صيانة الموبايل</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+    html { font-size: 14px; }
+    body { background: #f8fafc; color: #1e293b; min-height: 100vh; }
+    
+    /* Layout */
+    .app-container { display: flex; flex-direction: column; min-height: 100vh; }
+    
+    /* Mobile Header */
+    .mobile-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      background: white; border-bottom: 1px solid #e2e8f0;
+      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+    }
+    @media (min-width: 769px) { .mobile-header { display: none; } }
+    
+    /* Desktop Sidebar */
+    .desktop-sidebar {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 220px;
+      background: white; border-left: 1px solid #e2e8f0; z-index: 40;
+      display: none; flex-direction: column;
+    }
+    @media (min-width: 769px) { .desktop-sidebar { display: flex; } }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1; padding: 16px; padding-top: 60px;
+    }
+    @media (min-width: 769px) { 
+      .main-content { margin-right: 220px; padding-top: 16px; } 
+    }
+    
+    /* Drawer */
+    .drawer-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 100; opacity: 0; visibility: hidden; transition: all 0.3s;
+    }
+    .drawer-overlay.open { opacity: 1; visibility: visible; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 250px; max-width: 85vw;
+      background: white; z-index: 101; transform: translateX(100%);
+      transition: transform 0.3s; overflow-y: auto;
+    }
+    .drawer.open { transform: translateX(0); }
+    
+    /* Cards */
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; }
+    .card-header { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+    .card-body { padding: 16px; }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; border: none; transition: all 0.2s;
+    }
+    .btn-primary { background: #7c3aed; color: white; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-outline { background: transparent; border: 1px solid #e2e8f0; color: #1e293b; }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-success { background: #22c55e; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-sm { padding: 4px 12px; font-size: 12px; }
+    
+    /* Inputs */
+    .input {
+      width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0;
+      border-radius: 8px; font-size: 13px; background: white;
+    }
+    .input:focus { outline: none; border-color: #7c3aed; }
+    .label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #64748b; }
+    
+    /* Table */
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table th, .table td { padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0; }
+    .table th { background: #f8fafc; font-weight: 600; color: #64748b; }
+    .table-container { overflow-x: auto; }
+    
+    /* Badge */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    
+    /* Dialog */
+    .dialog-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .dialog {
+      background: white; border-radius: 12px; padding: 20px;
+      width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto;
+    }
+    
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 769px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+    
+    .stat-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+    .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .stat-title { font-size: 11px; color: #64748b; }
+    .stat-value { font-size: 18px; font-weight: 700; }
+    
+    /* Dark mode */
+    .dark body { background: #0f172a; color: #e2e8f0; }
+    .dark .card, .dark .desktop-sidebar, .dark .mobile-header, .dark .drawer { background: #1e293b; border-color: #334155; }
+    .dark .table th { background: #1e293b; }
+    .dark .input { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    .dark .stat-card { background: #1e293b; border-color: #334155; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div id="app" class="app-container"></div>
+  
+  <script>
+    // Store
+    const Store = {
+      data: { customers: [], repairs: [], inventory: [], invoices: [], expenses: [] },
+      init() {
+        const saved = localStorage.getItem('mobileRepairApp');
+        if (saved) { try { this.data = JSON.parse(saved); } catch(e) {} }
+        if (!this.data.customers.length) this.sampleData();
+      },
+      save() { localStorage.setItem('mobileRepairApp', JSON.stringify(this.data)); },
+      sampleData() {
+        this.data.customers = [
+          { id: 'c1', name: 'أحمد محمد', phone: '0791234567', address: 'عمان' },
+          { id: 'c2', name: 'سارة علي', phone: '0797654321', address: 'الزرقاء' },
+          { id: 'c3', name: 'محمد خالد', phone: '0799876543', address: 'إربد' }
+        ];
+        this.data.repairs = [
+          { id: 'r1', customerId: 'c1', deviceType: 'iPhone', deviceModel: 'iPhone 14 Pro', problem: 'شاشة مكسورة', status: 'DELIVERED', maintenanceCost: 150, finalCost: 250, deposit: 50, paidAmount: 250, debt: 0 },
+          { id: 'r2', customerId: 'c2', deviceType: 'Samsung', deviceModel: 'Galaxy S23', problem: 'بطارية تفرغ', status: 'IN_PROGRESS', maintenanceCost: 30, finalCost: 80, deposit: 20, paidAmount: 0, debt: 0 },
+          { id: 'r3', customerId: 'c3', deviceType: 'Xiaomi', deviceModel: 'Redmi Note 12', problem: 'لا يشتغل', status: 'DIAGNOSING' }
+        ];
+        this.data.inventory = [
+          { id: 'i1', name: 'شاشة iPhone 14 Pro', category: 'شاشات', quantity: 5, minQuantity: 2, costPrice: 120, sellingPrice: 180 },
+          { id: 'i2', name: 'بطارية Samsung', category: 'بطاريات', quantity: 10, minQuantity: 3, costPrice: 25, sellingPrice: 50 },
+          { id: 'i3', name: 'شاحن سريع', category: 'إكسسوارات', quantity: 15, minQuantity: 5, costPrice: 8, sellingPrice: 15 }
+        ];
+        this.data.expenses = [
+          { id: 'e1', category: 'إيجار', description: 'إيجار المحل', amount: 300, date: new Date().toISOString() },
+          { id: 'e2', category: 'كهرباء', description: 'فاتورة الكهرباء', amount: 50, date: new Date().toISOString() }
+        ];
+        this.data.invoices = [{ id: 'inv1', invoiceNumber: 'INV-001', customerId: 'c1', total: 250, paid: 250, status: 'PAID' }];
+        this.save();
+      },
+      add(col, item) { item.id = Date.now().toString(); this.data[col].push(item); this.save(); },
+      update(col, id, data) { const i = this.data[col].findIndex(x => x.id === id); if (i > -1) { this.data[col][i] = {...this.data[col][i], ...data}; this.save(); } },
+      delete(col, id) { this.data[col] = this.data[col].filter(x => x.id !== id); this.save(); },
+      get(col, id) { return this.data[col].find(x => x.id === id); }
+    };
+    Store.init();
+    
+    // State
+    let page = 'dashboard';
+    let theme = localStorage.getItem('theme') || 'light';
+    let drawer = false;
+    let dialog = null;
+    let dialogData = null;
+    
+    // Utils
+    const fmt = n => (n||0).toLocaleString('ar-SA');
+    const fdate = d => d ? new Date(d).toLocaleDateString('ar-SA') : '-';
+    const custName = id => Store.data.customers.find(c => c.id === id)?.name || 'غير معروف';
+    
+    const statusList = [
+      { v: 'PENDING', l: 'قيد الانتظار', c: '#f59e0b' },
+      { v: 'DIAGNOSING', l: 'قيد التشخيص', c: '#3b82f6' },
+      { v: 'WAITING_PARTS', l: 'انتظار القطع', c: '#f97316' },
+      { v: 'IN_PROGRESS', l: 'قيد الإصلاح', c: '#8b5cf6' },
+      { v: 'COMPLETED', l: 'تم الإصلاح', c: '#22c55e' },
+      { v: 'DELIVERED', l: 'تم التسليم', c: '#14b8a6' },
+      { v: 'CANCELLED', l: 'ملغي', c: '#ef4444' }
+    ];
+    const getStatus = v => statusList.find(s => s.v === v) || { l: v, c: '#6b7280' };
+    const devices = ['iPhone', 'Samsung', 'Huawei', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'Nokia', 'LG', 'أخرى'];
+    const expCats = ['إيجار', 'كهرباء', 'ماء', 'رواتب', 'مشتريات', 'صيانة', 'نقل', 'أخرى'];
+    
+    // Render
+    function render() {
+      document.getElementById('app').innerHTML = renderApp();
+      if (window.lucide) lucide.createIcons();
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    }
+    
+    function renderApp() {
+      return renderMobileHeader() + renderDrawer() + renderSidebar() + renderMain() + renderDialogs();
+    }
+    
+    function renderMobileHeader() {
+      const titles = { dashboard: 'الرئيسية', customers: 'العملاء', repairs: 'الصيانة', inventory: 'المخزون', invoices: 'الفواتير', expenses: 'المصاريف', debts: 'الديون', reports: 'التقارير', backup: 'النسخ الاحتياطي' };
+      return '<header class="mobile-header"><button onclick="toggleDrawer()" class="btn btn-outline" style="padding:8px"><i data-lucide="menu" style="width:20px;height:20px"></i></button><span style="font-weight:600">' + (titles[page] || 'الرئيسية') + '</span><button onclick="toggleTheme()" class="btn btn-outline" style="padding:8px"><i data-lucide="' + (theme === 'dark' ? 'sun' : 'moon') + '" style="width:20px;height:20px"></i></button></header>';
+    }
+    
+    function renderDrawer() {
+      const items = [{id:'dashboard',i:'layout-dashboard',t:'الرئيسية'},{id:'repairs',i:'wrench',t:'الصيانة'},{id:'customers',i:'users',t:'العملاء'},{id:'inventory',i:'package',t:'المخزون'},{id:'invoices',i:'file-text',t:'الفواتير'},{id:'expenses',i:'receipt',t:'المصاريف'},{id:'debts',i:'credit-card',t:'الديون'},{id:'reports',i:'bar-chart-2',t:'التقارير'},{id:'backup',i:'database',t:'النسخ الاحتياطي'}];
+      const del = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = del.reduce((s,r) => s + ((r.finalCost||0) - (r.maintenanceCost||0)), 0);
+      const debts = del.reduce((s,r) => s + (r.debt||0), 0);
+      const exp = Store.data.expenses.reduce((s,e) => s + e.amount, 0);
+      
+      let h = '<div class="drawer-overlay' + (drawer ? ' open' : '') + '" onclick="toggleDrawer()"></div>';
+      h += '<div class="drawer' + (drawer ? ' open' : '') + '">';
+      h += '<div style="padding:16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="background:#7c3aed;padding:8px;border-radius:8px"><i data-lucide="smartphone" style="width:20px;height:20px;color:white"></i></div><div><div style="font-weight:700">صيانة موبايل</div><div style="font-size:11px;color:#64748b">نظام المحاسبة</div></div></div>';
+      h += '<div style="padding:12px;border-bottom:1px solid #e2e8f0;display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#f0fdf4;padding:8px;border-radius:8px;text-align:center"><div style="font-size:10px;color:#64748b">الأرباح</div><div style="font-weight:700;color:#16a34a;font-size:14px">' + fmt(profit - exp) + ' د.أ</div></div><div style="background:#fef2f2;padding:8px;border-radius:8px;text-align:center"><div style="font-size:10px;color:#64748b">الديون</div><div style="font-weight:700;color:#dc2626;font-size:14px">' + fmt(debts) + ' د.أ</div></div></div>';
+      h += '<div style="padding:8px">';
+      items.forEach(x => {
+        h += '<button onclick="nav(\'' + x.id + '\')" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:none;background:' + (page === x.id ? '#7c3aed' : 'transparent') + ';color:' + (page === x.id ? 'white' : 'inherit') + ';cursor:pointer;font-size:13px;margin-bottom:4px"><i data-lucide="' + x.i + '" style="width:16px;height:16px"></i>' + x.t + '</button>';
+      });
+      h += '</div>';
+      h += '<div style="padding:12px;border-top:1px solid #e2e8f0"><button onclick="openDialog(\'export\')" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-size:13px"><i data-lucide="download" style="width:16px;height:16px;color:#22c55e"></i>تصدير البيانات</button></div>';
+      h += '</div>';
+      return h;
+    }
+    
+    function renderSidebar() {
+      const items = [{id:'dashboard',i:'layout-dashboard',t:'الرئيسية'},{id:'repairs',i:'wrench',t:'الصيانة'},{id:'customers',i:'users',t:'العملاء'},{id:'inventory',i:'package',t:'المخزون'},{id:'invoices',i:'file-text',t:'الفواتير'},{id:'expenses',i:'receipt',t:'المصاريف'},{id:'debts',i:'credit-card',t:'الديون'},{id:'reports',i:'bar-chart-2',t:'التقارير'},{id:'backup',i:'database',t:'النسخ الاحتياطي'}];
+      let h = '<aside class="desktop-sidebar">';
+      h += '<div style="padding:16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:12px"><div style="background:#7c3aed;padding:8px;border-radius:8px"><i data-lucide="smartphone" style="width:20px;height:20px;color:white"></i></div><div><div style="font-weight:700">صيانة موبايل</div><div style="font-size:11px;color:#64748b">نظام المحاسبة</div></div></div>';
+      h += '<div style="padding:8px;flex:1">';
+      items.forEach(x => {
+        h += '<button onclick="nav(\'' + x.id + '\')" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:none;background:' + (page === x.id ? '#7c3aed' : 'transparent') + ';color:' + (page === x.id ? 'white' : 'inherit') + ';cursor:pointer;font-size:13px;margin-bottom:4px"><i data-lucide="' + x.i + '" style="width:16px;height:16px"></i>' + x.t + '</button>';
+      });
+      h += '</div>';
+      h += '<div style="padding:12px;border-top:1px solid #e2e8f0"><button onclick="openDialog(\'export\')" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-size:13px"><i data-lucide="download" style="width:16px;height:16px;color:#22c55e"></i>تصدير</button><button onclick="toggleTheme()" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;font-size:13px"><i data-lucide="' + (theme === 'dark' ? 'sun' : 'moon') + '" style="width:16px;height:16px;color:' + (theme === 'dark' ? '#f59e0b' : '#3b82f6') + '"></i>' + (theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي') + '</button><div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:8px">© 2024</div></div>';
+      h += '</aside>';
+      return h;
+    }
+    
+    function renderMain() {
+      return '<main class="main-content"><div style="max-width:1200px;margin:0 auto">' + renderPage() + '</div></main>';
+    }
+    
+    function renderPage() {
+      const pages = { dashboard: renderDashboard, customers: renderCustomers, repairs: renderRepairs, inventory: renderInventory, invoices: renderInvoices, expenses: renderExpenses, debts: renderDebts, reports: renderReports, backup: renderBackup };
+      return (pages[page] || pages.dashboard)();
+    }
+    
+    function renderDashboard() {
+      const del = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = del.reduce((s,r) => s + ((r.finalCost||0) - (r.maintenanceCost||0)), 0);
+      const debts = del.reduce((s,r) => s + (r.debt||0), 0);
+      const exp = Store.data.expenses.reduce((s,e) => s + e.amount, 0);
+      const pending = Store.data.repairs.filter(r => ['PENDING','DIAGNOSING','IN_PROGRESS'].includes(r.status)).length;
+      
+      let h = '<h1 style="font-size:20px;font-weight:700;margin-bottom:16px;display:none">@media(min-width:769px){display:block}لوحة التحكم</h1>';
+      h += '<div class="stats-grid" style="margin-bottom:16px">';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#f0fdf4"><i data-lucide="trending-up" style="width:20px;height:20px;color:#16a34a"></i></div><div><div class="stat-title">أرباح الصيانة</div><div class="stat-value" style="color:#16a34a">' + fmt(profit) + ' د.أ</div></div></div>';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#eff6ff"><i data-lucide="dollar-sign" style="width:20px;height:20px;color:#2563eb"></i></div><div><div class="stat-title">صافي الربح</div><div class="stat-value" style="color:#2563eb">' + fmt(profit - exp) + ' د.أ</div></div></div>';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#fef2f2"><i data-lucide="credit-card" style="width:20px;height:20px;color:#dc2626"></i></div><div><div class="stat-title">ديون العملاء</div><div class="stat-value" style="color:#dc2626">' + fmt(debts) + ' د.أ</div></div></div>';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#faf5ff"><i data-lucide="wrench" style="width:20px;height:20px;color:#9333ea"></i></div><div><div class="stat-title">قيد الانتظار</div><div class="stat-value" style="color:#9333ea">' + pending + '</div></div></div>';
+      h += '</div>';
+      
+      h += '<div class="card"><div class="card-header">آخر طلبات الصيانة</div><div class="card-body"><div class="table-container"><table class="table"><thead><tr><th>العميل</th><th>الجهاز</th><th>الحالة</th><th>السعر</th></tr></thead><tbody>';
+      Store.data.repairs.slice(-5).reverse().forEach(r => {
+        const s = getStatus(r.status);
+        h += '<tr><td style="font-weight:500">' + custName(r.customerId) + '</td><td>' + r.deviceModel + '</td><td><span class="badge" style="background:' + s.c + ';color:white">' + s.l + '</span></td><td>' + fmt(r.finalCost || 0) + ' د.أ</td></tr>';
+      });
+      h += '</tbody></table></div></div></div>';
+      return h;
+    }
+    
+    function renderCustomers() {
+      let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h1 style="font-size:20px;font-weight:700">العملاء</h1><button onclick="openDialog(\'customer\')" class="btn btn-primary"><i data-lucide="plus" style="width:16px;height:16px"></i>عميل جديد</button></div>';
+      h += '<div class="card"><div class="card-body"><div class="table-container"><table class="table"><thead><tr><th>الاسم</th><th>الهاتف</th><th>العنوان</th><th></th></tr></thead><tbody>';
+      Store.data.customers.forEach(c => {
+        h += '<tr><td style="font-weight:500">' + c.name + '</td><td dir="ltr">' + c.phone + '</td><td>' + (c.address || '-') + '</td><td><button onclick="openDialog(\'customer\',\'' + c.id + '\')" class="btn btn-outline btn-sm">تعديل</button> <button onclick="deleteItem(\'customers\',\'' + c.id + '\')" class="btn btn-outline btn-sm" style="color:#dc2626">حذف</button></td></tr>';
+      });
+      h += '</tbody></table></div></div></div>';
+      return h;
+    }
+    
+    function renderRepairs() {
+      let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h1 style="font-size:20px;font-weight:700">طلبات الصيانة</h1><button onclick="openDialog(\'repair\')" class="btn btn-primary"><i data-lucide="plus" style="width:16px;height:16px"></i>طلب جديد</button></div>';
+      h += '<div class="card"><div class="card-body"><div class="table-container"><table class="table"><thead><tr><th>العميل</th><th>الجهاز</th><th>الحالة</th><th>السعر</th><th></th></tr></thead><tbody>';
+      Store.data.repairs.forEach(r => {
+        const s = getStatus(r.status);
+        h += '<tr><td style="font-weight:500">' + custName(r.customerId) + '</td><td>' + r.deviceModel + '</td><td><span class="badge" style="background:' + s.c + ';color:white">' + s.l + '</span></td><td>' + fmt(r.finalCost || 0) + ' د.أ</td><td>';
+        if (r.status === 'COMPLETED') h += '<button onclick="openDialog(\'delivery\',\'' + r.id + '\')" class="btn btn-success btn-sm">تسليم</button> ';
+        h += '<button onclick="openDialog(\'repair\',\'' + r.id + '\')" class="btn btn-outline btn-sm">تعديل</button> <button onclick="deleteItem(\'repairs\',\'' + r.id + '\')" class="btn btn-outline btn-sm" style="color:#dc2626">حذف</button></td></tr>';
+      });
+      h += '</tbody></table></div></div></div>';
+      return h;
+    }
+    
+    function renderInventory() {
+      let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h1 style="font-size:20px;font-weight:700">المخزون</h1><button onclick="openDialog(\'inventory\')" class="btn btn-primary"><i data-lucide="plus" style="width:16px;height:16px"></i>إضافة</button></div>';
+      h += '<div class="card"><div class="card-body"><div class="table-container"><table class="table"><thead><tr><th>الاسم</th><th>الفئة</th><th>الكمية</th><th>السعر</th><th></th></tr></thead><tbody>';
+      Store.data.inventory.forEach(i => {
+        const low = i.quantity <= i.minQuantity;
+        h += '<tr style="' + (low ? 'background:#fef2f2' : '') + '"><td style="font-weight:500">' + i.name + '</td><td>' + i.category + '</td><td style="' + (low ? 'color:#dc2626;font-weight:700' : '') + '">' + i.quantity + (low ? ' (منخفض)' : '') + '</td><td>' + fmt(i.sellingPrice) + ' د.أ</td><td><button onclick="openDialog(\'inventory\',\'' + i.id + '\')" class="btn btn-outline btn-sm">تعديل</button> <button onclick="deleteItem(\'inventory\',\'' + i.id + '\')" class="btn btn-outline btn-sm" style="color:#dc2626">حذف</button></td></tr>';
+      });
+      h += '</tbody></table></div></div></div>';
+      return h;
+    }
+    
+    function renderInvoices() {
+      let h = '<h1 style="font-size:20px;font-weight:700;margin-bottom:16px">الفواتير</h1>';
+      h += '<div class="card"><div class="card-body"><div class="table-container"><table class="table"><thead><tr><th>رقم</th><th>العميل</th><th>المجموع</th><th>الحالة</th></tr></thead><tbody>';
+      Store.data.invoices.forEach(inv => {
+        h += '<tr><td style="font-weight:500">' + inv.invoiceNumber + '</td><td>' + custName(inv.customerId) + '</td><td>' + fmt(inv.total) + ' د.أ</td><td><span class="badge" style="background:' + (inv.status === 'PAID' ? '#22c55e' : '#f59e0b') + ';color:white">' + (inv.status === 'PAID' ? 'مدفوعة' : 'معلقة') + '</span></td></tr>';
+      });
+      h += '</tbody></table></div></div></div>';
+      return h;
+    }
+    
+    function renderExpenses() {
+      const total = Store.data.expenses.reduce((s,e) => s + e.amount, 0);
+      let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h1 style="font-size:20px;font-weight:700">المصاريف</h1><button onclick="openDialog(\'expense\')" class="btn btn-primary"><i data-lucide="plus" style="width:16px;height:16px"></i>مصروف</button></div>';
+      h += '<div class="stats-grid" style="margin-bottom:16px"><div class="stat-card"><div class="stat-icon" style="background:#fef2f2"><i data-lucide="receipt" style="width:20px;height:20px;color:#dc2626"></i></div><div><div class="stat-title">إجمالي المصاريف</div><div class="stat-value" style="color:#dc2626">' + fmt(total) + ' د.أ</div></div></div></div>';
+      h += '<div class="card"><div class="card-body"><div class="table-container"><table class="table"><thead><tr><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th></th></tr></thead><tbody>';
+      Store.data.expenses.forEach(e => {
+        h += '<tr><td style="font-weight:500">' + e.category + '</td><td>' + e.description + '</td><td style="color:#dc2626;font-weight:600">' + fmt(e.amount) + ' د.أ</td><td><button onclick="openDialog(\'expense\',\'' + e.id + '\')" class="btn btn-outline btn-sm">تعديل</button> <button onclick="deleteItem(\'expenses\',\'' + e.id + '\')" class="btn btn-outline btn-sm" style="color:#dc2626">حذف</button></td></tr>';
+      });
+      h += '</tbody></table></div></div></div>';
+      return h;
+    }
+    
+    function renderDebts() {
+      const debts = Store.data.repairs.filter(r => r.status === 'DELIVERED' && r.debt > 0);
+      const total = debts.reduce((s,r) => s + r.debt, 0);
+      let h = '<h1 style="font-size:20px;font-weight:700;margin-bottom:16px">الديون</h1>';
+      h += '<div class="stat-card" style="background:#fef2f2;margin-bottom:16px"><div class="stat-icon" style="background:#dc2626"><i data-lucide="credit-card" style="width:20px;height:20px;color:white"></i></div><div><div class="stat-title">إجمالي الديون</div><div class="stat-value" style="color:#dc2626">' + fmt(total) + ' د.أ</div></div></div>';
+      h += '<div class="card"><div class="card-body">';
+      if (debts.length === 0) {
+        h += '<div style="text-align:center;padding:40px;color:#64748b"><i data-lucide="check-circle" style="width:40px;height:40px;color:#22c55e"></i><p style="margin-top:12px">لا توجد ديون 🎉</p></div>';
+      } else {
+        h += '<div class="table-container"><table class="table"><thead><tr><th>العميل</th><th>الجهاز</th><th>الدين</th><th></th></tr></thead><tbody>';
+        debts.forEach(d => {
+          h += '<tr><td>' + custName(d.customerId) + '</td><td>' + d.deviceModel + '</td><td><span class="badge" style="background:#dc2626;color:white">' + fmt(d.debt) + ' د.أ</span></td><td><button onclick="payDebt(\'' + d.id + '\')" class="btn btn-success btn-sm">تسديد</button></td></tr>';
+        });
+        h += '</tbody></table></div>';
+      }
+      h += '</div></div>';
+      return h;
+    }
+    
+    function renderReports() {
+      const del = Store.data.repairs.filter(r => r.status === 'DELIVERED');
+      const profit = del.reduce((s,r) => s + ((r.finalCost||0) - (r.maintenanceCost||0)), 0);
+      const exp = Store.data.expenses.reduce((s,e) => s + e.amount, 0);
+      const debts = del.reduce((s,r) => s + (r.debt||0), 0);
+      
+      let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h1 style="font-size:20px;font-weight:700">التقارير</h1><button onclick="openDialog(\'export\')" class="btn btn-success"><i data-lucide="download" style="width:16px;height:16px"></i>تصدير</button></div>';
+      
+      h += '<div class="stats-grid" style="margin-bottom:16px">';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#f0fdf4"><i data-lucide="trending-up" style="width:20px;height:20px;color:#16a34a"></i></div><div><div class="stat-title">أرباح الصيانة</div><div class="stat-value" style="color:#16a34a">' + fmt(profit) + ' د.أ</div></div></div>';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#fef2f2"><i data-lucide="trending-down" style="width:20px;height:20px;color:#dc2626"></i></div><div><div class="stat-title">المصاريف</div><div class="stat-value" style="color:#dc2626">' + fmt(exp) + ' د.أ</div></div></div>';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#eff6ff"><i data-lucide="dollar-sign" style="width:20px;height:20px;color:#2563eb"></i></div><div><div class="stat-title">صافي الربح</div><div class="stat-value" style="color:#2563eb">' + fmt(profit - exp) + ' د.أ</div></div></div>';
+      h += '<div class="stat-card"><div class="stat-icon" style="background:#fff7ed"><i data-lucide="credit-card" style="width:20px;height:20px;color:#ea580c"></i></div><div><div class="stat-title">الديون</div><div class="stat-value" style="color:#ea580c">' + fmt(debts) + ' د.أ</div></div></div>';
+      h += '</div>';
+      
+      h += '<div class="card" style="background:linear-gradient(to left,#eff6ff,#f0fdf4);margin-bottom:16px"><div class="card-body"><h3 style="font-weight:700;margin-bottom:12px">طريقة حساب الأرباح</h3><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-size:13px">';
+      h += '<div style="padding:12px;background:rgba(255,255,255,0.7);border-radius:8px"><div style="font-weight:500;color:#16a34a">أرباح الصيانة</div><div style="font-size:11px;color:#64748b">السعر - التكلفة</div><div style="font-weight:700">' + fmt(profit) + ' د.أ</div></div>';
+      h += '<div style="padding:12px;background:rgba(255,255,255,0.7);border-radius:8px"><div style="font-weight:500;color:#dc2626">- المصاريف</div><div style="font-size:11px;color:#64748b">إيجار، كهرباء...</div><div style="font-weight:700">' + fmt(exp) + ' د.أ</div></div>';
+      h += '<div style="padding:12px;background:rgba(255,255,255,0.9);border-radius:8px"><div style="font-weight:500;color:#2563eb">= صافي الربح</div><div style="font-weight:700;font-size:18px">' + fmt(profit - exp) + ' د.أ</div></div>';
+      h += '</div></div></div>';
+      
+      h += '<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:16px">@media(min-width:1024px){grid-template-columns:1fr 1fr}';
+      h += '<div class="card"><div class="card-header">حالات الصيانة</div><div class="card-body"><div style="height:200px"><canvas id="statusChart"></canvas></div><div id="statusLegend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px"></div></div></div>';
+      h += '<div class="card"><div class="card-header">أنواع الأجهزة</div><div class="card-body"><div style="height:200px"><canvas id="deviceChart"></canvas></div><div id="deviceLegend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px"></div></div></div>';
+      h += '</div>';
+      
+      setTimeout(initCharts, 100);
+      return h;
+    }
+    
+    function initCharts() {
+      const statusCanvas = document.getElementById('statusChart');
+      if (statusCanvas) {
+        const counts = {};
+        Store.data.repairs.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+        const data = statusList.filter(s => counts[s.v] > 0).map(s => ({ l: s.l, v: counts[s.v] }));
+        const colors = ['#f59e0b', '#3b82f6', '#f97316', '#8b5cf6', '#22c55e', '#14b8a6', '#ef4444'];
+        
+        new Chart(statusCanvas, {
+          type: 'pie',
+          data: { labels: data.map(d => d.l), datasets: [{ data: data.map(d => d.v), backgroundColor: colors.slice(0, data.length) }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        
+        const legend = document.getElementById('statusLegend');
+        if (legend) legend.innerHTML = data.map((d, i) => '<span style="display:flex;align-items:center;gap:4px;font-size:12px"><span style="width:10px;height:10px;border-radius:50%;background:' + colors[i] + '"></span>' + d.l + ': ' + d.v + '</span>').join('');
+      }
+      
+      const deviceCanvas = document.getElementById('deviceChart');
+      if (deviceCanvas) {
+        const counts = {};
+        Store.data.repairs.forEach(r => counts[r.deviceType] = (counts[r.deviceType] || 0) + 1);
+        const data = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+        
+        new Chart(deviceCanvas, {
+          type: 'pie',
+          data: { labels: data.map(d => d[0]), datasets: [{ data: data.map(d => d[1]), backgroundColor: colors.slice(0, data.length) }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+        
+        const legend = document.getElementById('deviceLegend');
+        if (legend) legend.innerHTML = data.map((d, i) => '<span style="display:flex;align-items:center;gap:4px;font-size:12px"><span style="width:10px;height:10px;border-radius:50%;background:' + colors[i] + '"></span>' + d[0] + ': ' + d[1] + '</span>').join('');
+      }
+    }
+    
+    function renderBackup() {
+      let h = '<h1 style="font-size:20px;font-weight:700;margin-bottom:16px">النسخ الاحتياطي</h1>';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">';
+      h += '<div class="card"><div class="card-header">إنشاء نسخة</div><div class="card-body"><button onclick="createBackup()" class="btn btn-primary" style="width:100%">إنشاء نسخة احتياطية</button></div></div>';
+      h += '<div class="card"><div class="card-header">استرجاع نسخة</div><div class="card-body"><input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)"><button onclick="document.getElementById(\'backupFile\').click()" class="btn btn-outline" style="width:100%">اختيار ملف</button></div></div>';
+      h += '</div>';
+      h += '<div class="card" style="background:#fef2f2;border-color:#fecaca"><div class="card-body" style="display:flex;align-items:center;gap:12px"><i data-lucide="alert-triangle" style="width:20px;height:20px;color:#dc2626"></i><div><div style="font-weight:600;color:#dc2626">تحذير</div><div style="font-size:12px;color:#dc2626">الاسترجاع سيحل محل جميع البيانات الحالية</div></div></div></div>';
+      return h;
+    }
+    
+    function createBackup() {
+      const data = { version: '1.0', date: new Date().toISOString(), data: Store.data };
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      a.download = 'backup_' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+    }
+    
+    function restoreBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.data && confirm('هل أنت متأكد؟')) {
+            Store.data = data.data;
+            Store.save();
+            render();
+            alert('تم الاسترجاع!');
+          }
+        } catch(err) { alert('ملف غير صالح'); }
+      };
+      reader.readAsText(file);
+    }
+    
+    // Dialogs
+    function renderDialogs() {
+      let h = '';
+      
+      if (dialog === 'export') {
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()"><h2 style="font-size:16px;font-weight:700;margin-bottom:16px">تصدير البيانات</h2><div style="display:flex;flex-direction:column;gap:8px"><button onclick="exportExcel()" class="btn btn-outline">تصدير الكل (Excel)</button><button onclick="exportPDF()" class="btn btn-outline">تصدير الكل (PDF)</button></div><div style="text-align:left;margin-top:16px"><button onclick="closeDialog()" class="btn btn-outline">إغلاق</button></div></div></div>';
+      }
+      
+      if (dialog === 'customer') {
+        const c = dialogData;
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()"><h2 style="font-size:16px;font-weight:700;margin-bottom:16px">' + (c ? 'تعديل عميل' : 'عميل جديد') + '</h2><form onsubmit="saveCustomer(event)"><input type="hidden" id="customerId" value="' + (c?.id || '') + '"><div style="margin-bottom:12px"><label class="label">الاسم</label><input type="text" id="customerName" class="input" value="' + (c?.name || '') + '" required></div><div style="margin-bottom:12px"><label class="label">الهاتف</label><input type="tel" id="customerPhone" class="input" value="' + (c?.phone || '') + '" required dir="ltr"></div><div style="margin-bottom:12px"><label class="label">العنوان</label><input type="text" id="customerAddress" class="input" value="' + (c?.address || '') + '"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" onclick="closeDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">حفظ</button></div></form></div></div>';
+      }
+      
+      if (dialog === 'repair') {
+        const r = dialogData;
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()" style="max-width:600px"><h2 style="font-size:16px;font-weight:700;margin-bottom:16px">' + (r ? 'تعديل طلب' : 'طلب جديد') + '</h2><form onsubmit="saveRepair(event)"><input type="hidden" id="repairId" value="' + (r?.id || '') + '"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><label class="label">العميل</label><select id="repairCustomer" class="input" required><option value="">اختر</option>';
+        Store.data.customers.forEach(c => { h += '<option value="' + c.id + '"' + (r?.customerId === c.id ? ' selected' : '') + '>' + c.name + '</option>'; });
+        h += '</select></div><div><label class="label">نوع الجهاز</label><select id="repairDeviceType" class="input" required><option value="">اختر</option>';
+        devices.forEach(d => { h += '<option value="' + d + '"' + (r?.deviceType === d ? ' selected' : '') + '>' + d + '</option>'; });
+        h += '</select></div><div><label class="label">الموديل</label><input type="text" id="repairDeviceModel" class="input" value="' + (r?.deviceModel || '') + '" required></div><div><label class="label">الحالة</label><select id="repairStatus" class="input">';
+        statusList.forEach(s => { h += '<option value="' + s.v + '"' + (r?.status === s.v ? ' selected' : '') + '>' + s.l + '</option>'; });
+        h += '</select></div><div><label class="label">العربون</label><input type="number" id="repairDeposit" class="input" value="' + (r?.deposit || 0) + '"></div><div><label class="label">تكلفة الصيانة</label><input type="number" id="repairMaintenanceCost" class="input" value="' + (r?.maintenanceCost || '') + '"></div><div><label class="label">السعر النهائي</label><input type="number" id="repairFinalCost" class="input" value="' + (r?.finalCost || '') + '"></div></div><div style="margin-bottom:12px"><label class="label">المشكلة</label><textarea id="repairProblem" class="input" style="min-height:60px" required>' + (r?.problem || '') + '</textarea></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" onclick="closeDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">حفظ</button></div></form></div></div>';
+      }
+      
+      if (dialog === 'inventory') {
+        const i = dialogData;
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()"><h2 style="font-size:16px;font-weight:700;margin-bottom:16px">' + (i ? 'تعديل' : 'إضافة') + '</h2><form onsubmit="saveInventory(event)"><input type="hidden" id="inventoryId" value="' + (i?.id || '') + '"><div style="margin-bottom:12px"><label class="label">الاسم</label><input type="text" id="inventoryName" class="input" value="' + (i?.name || '') + '" required></div><div style="margin-bottom:12px"><label class="label">الفئة</label><input type="text" id="inventoryCategory" class="input" value="' + (i?.category || '') + '" required></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><label class="label">الكمية</label><input type="number" id="inventoryQuantity" class="input" value="' + (i?.quantity || 0) + '"></div><div><label class="label">الحد الأدنى</label><input type="number" id="inventoryMinQuantity" class="input" value="' + (i?.minQuantity || 5) + '"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px"><div><label class="label">سعر الشراء</label><input type="number" id="inventoryCostPrice" class="input" value="' + (i?.costPrice || 0) + '"></div><div><label class="label">سعر البيع</label><input type="number" id="inventorySellingPrice" class="input" value="' + (i?.sellingPrice || 0) + '"></div></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" onclick="closeDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">حفظ</button></div></form></div></div>';
+      }
+      
+      if (dialog === 'expense') {
+        const e = dialogData;
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()"><h2 style="font-size:16px;font-weight:700;margin-bottom:16px">' + (e ? 'تعديل' : 'مصروف جديد') + '</h2><form onsubmit="saveExpense(event)"><input type="hidden" id="expenseId" value="' + (e?.id || '') + '"><div style="margin-bottom:12px"><label class="label">الفئة</label><select id="expenseCategory" class="input" required><option value="">اختر</option>';
+        expCats.forEach(c => { h += '<option value="' + c + '"' + (e?.category === c ? ' selected' : '') + '>' + c + '</option>'; });
+        h += '</select></div><div style="margin-bottom:12px"><label class="label">الوصف</label><input type="text" id="expenseDescription" class="input" value="' + (e?.description || '') + '" required></div><div style="margin-bottom:12px"><label class="label">المبلغ</label><input type="number" id="expenseAmount" class="input" value="' + (e?.amount || '') + '" required></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" onclick="closeDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-primary">حفظ</button></div></form></div></div>';
+      }
+      
+      if (dialog === 'delivery') {
+        const r = dialogData;
+        const remaining = (r.finalCost || 0) - (r.deposit || 0);
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()"><h2 style="font-size:16px;font-weight:700;margin-bottom:16px">تأكيد التسليم</h2><div style="background:#f8fafc;padding:12px;border-radius:8px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#64748b">العميل:</span><span style="font-weight:500">' + custName(r.customerId) + '</span></div><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#64748b">السعر:</span><span style="font-weight:700;color:#2563eb">' + fmt(r.finalCost || 0) + ' د.أ</span></div><div style="display:flex;justify-content:space-between"><span style="color:#64748b">العربون:</span><span style="color:#22c55e">' + fmt(r.deposit || 0) + ' د.أ</span></div></div><div style="background:#fffbeb;padding:12px;border-radius:8px;border:1px solid #fcd34d;margin-bottom:12px"><div style="display:flex;justify-content:space-between"><span style="color:#64748b">المتبقي:</span><span style="font-weight:700;color:#d97706">' + fmt(remaining) + ' د.أ</span></div></div><form onsubmit="confirmDelivery(event)"><div style="margin-bottom:12px"><label class="label">المبلغ المدفوع</label><input type="number" id="deliveryPaidAmount" class="input" value="' + remaining + '"></div><div style="margin-bottom:12px"><label class="label">الدين</label><input type="number" id="deliveryDebt" class="input" value="0"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" onclick="closeDialog()" class="btn btn-outline">إلغاء</button><button type="submit" class="btn btn-success">تأكيد</button></div></form></div></div>';
+      }
+      
+      if (dialog === 'confirm') {
+        h += '<div class="dialog-overlay" onclick="closeDialog()"><div class="dialog" onclick="event.stopPropagation()" style="max-width:350px"><h2 style="font-size:16px;font-weight:700;margin-bottom:8px">تأكيد الحذف</h2><p style="color:#64748b;margin-bottom:16px;font-size:13px">' + (dialogData?.message || 'هل أنت متأكد؟') + '</p><div style="display:flex;gap:8px;justify-content:flex-end"><button onclick="closeDialog()" class="btn btn-outline">إلغاء</button><button onclick="confirmDelete()" class="btn btn-danger">حذف</button></div></div></div>';
+      }
+      
+      return h;
+    }
+    
+    // Actions
+    function openDialog(type, id) {
+      dialog = type;
+      dialogData = id ? Store.get(type === 'customer' ? 'customers' : type === 'repair' ? 'repairs' : type === 'inventory' ? 'inventory' : type === 'expense' ? 'expenses' : 'repairs', id) : null;
+      if (type === 'delivery') dialogData = Store.get('repairs', id);
+      render();
+    }
+    
+    function closeDialog() { dialog = null; dialogData = null; render(); }
+    
+    function saveCustomer(e) {
+      e.preventDefault();
+      const id = document.getElementById('customerId').value;
+      const data = { name: document.getElementById('customerName').value, phone: document.getElementById('customerPhone').value, address: document.getElementById('customerAddress').value };
+      id ? Store.update('customers', id, data) : Store.add('customers', data);
+      closeDialog();
+    }
+    
+    function saveRepair(e) {
+      e.preventDefault();
+      const id = document.getElementById('repairId').value;
+      const data = {
+        customerId: document.getElementById('repairCustomer').value,
+        deviceType: document.getElementById('repairDeviceType').value,
+        deviceModel: document.getElementById('repairDeviceModel').value,
+        problem: document.getElementById('repairProblem').value,
+        status: document.getElementById('repairStatus').value,
+        deposit: parseFloat(document.getElementById('repairDeposit').value) || 0,
+        maintenanceCost: parseFloat(document.getElementById('repairMaintenanceCost').value) || null,
+        finalCost: parseFloat(document.getElementById('repairFinalCost').value) || null
+      };
+      id ? Store.update('repairs', id, data) : Store.add('repairs', data);
+      closeDialog();
+    }
+    
+    function saveInventory(e) {
+      e.preventDefault();
+      const id = document.getElementById('inventoryId').value;
+      const data = {
+        name: document.getElementById('inventoryName').value,
+        category: document.getElementById('inventoryCategory').value,
+        quantity: parseInt(document.getElementById('inventoryQuantity').value) || 0,
+        minQuantity: parseInt(document.getElementById('inventoryMinQuantity').value) || 5,
+        costPrice: parseFloat(document.getElementById('inventoryCostPrice').value) || 0,
+        sellingPrice: parseFloat(document.getElementById('inventorySellingPrice').value) || 0
+      };
+      id ? Store.update('inventory', id, data) : Store.add('inventory', data);
+      closeDialog();
+    }
+    
+    function saveExpense(e) {
+      e.preventDefault();
+      const id = document.getElementById('expenseId').value;
+      const data = {
+        category: document.getElementById('expenseCategory').value,
+        description: document.getElementById('expenseDescription').value,
+        amount: parseFloat(document.getElementById('expenseAmount').value) || 0,
+        date: new Date().toISOString()
+      };
+      id ? Store.update('expenses', id, data) : Store.add('expenses', data);
+      closeDialog();
+    }
+    
+    function confirmDelivery(e) {
+      e.preventDefault();
+      const paid = parseFloat(document.getElementById('deliveryPaidAmount').value) || 0;
+      const debt = parseFloat(document.getElementById('deliveryDebt').value) || 0;
+      Store.update('repairs', dialogData.id, { status: 'DELIVERED', paidAmount: paid, debt: debt, deliveredAt: new Date().toISOString() });
+      closeDialog();
+    }
+    
+    function deleteItem(type, id) {
+      dialog = 'confirm';
+      dialogData = { type, id, message: 'هل أنت متأكد من حذف هذا العنصر؟' };
+      render();
+    }
+    
+    function confirmDelete() {
+      if (dialogData?.type && dialogData?.id) Store.delete(dialogData.type, dialogData.id);
+      closeDialog();
+    }
+    
+    function payDebt(id) {
+      const r = Store.get('repairs', id);
+      if (r) {
+        Store.update('repairs', id, { paidAmount: (r.paidAmount || 0) + r.debt, debt: 0 });
+        render();
+      }
+    }
+    
+    function exportExcel() {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(Store.data.customers.map((c,i) => ({ '#':i+1, 'الاسم':c.name, 'الهاتف':c.phone }))), 'العملاء');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(Store.data.repairs.map((r,i) => ({ '#':i+1, 'العميل':custName(r.customerId), 'الجهاز':r.deviceModel, 'الحالة':getStatus(r.status).l, 'السعر':r.finalCost||0 }))), 'الصيانة');
+      XLSX.writeFile(wb, 'تقرير_' + new Date().toISOString().split('T')[0] + '.xlsx');
+      closeDialog();
+    }
+    
+    function exportPDF() {
+      const win = window.open('', '_blank');
+      win.document.write('<html dir="rtl"><head><meta charset="UTF-8"><title>تقرير</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:center}th{background:#4a90d9;color:white}</style></head><body>');
+      win.document.write('<h1 style="text-align:center">نظام محاسبة صيانة الموبايل</h1>');
+      win.document.write('<h2>العملاء</h2><table><tr><th>#</th><th>الاسم</th><th>الهاتف</th></tr>');
+      Store.data.customers.forEach((c,i) => win.document.write('<tr><td>' + (i+1) + '</td><td>' + c.name + '</td><td>' + c.phone + '</td></tr>'));
+      win.document.write('</table></body></html>');
+      win.document.close();
+      setTimeout(() => win.print(), 500);
+      closeDialog();
+    }
+    
+    // Navigation
+    function nav(p) { page = p; drawer = false; render(); }
+    function toggleDrawer() { drawer = !drawer; render(); }
+    function toggleTheme() { theme = theme === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', theme); render(); }
+    
+    // Init
+    render();
+  </script>
+</body>
+</html>
