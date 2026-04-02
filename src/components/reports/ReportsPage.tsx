@@ -18,7 +18,8 @@ import {
   BarChart3,
   PieChart,
   Calculator,
-  Loader2
+  Loader2,
+  Wrench
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { ExportDialog } from '@/components/export/ExportButton';
@@ -158,12 +159,19 @@ export function ReportsPage() {
       .slice(0, 6);
   }, [filteredRepairs]);
 
-  // بيانات حالات الصيانة
-  const repairStatusData = [
-    { name: 'قيد الإصلاح', value: filteredRepairs.filter(r => r.status === 'IN_PROGRESS').length, color: '#8b5cf6' },
-    { name: 'تم الإصلاح والتسليم', value: filteredRepairs.filter(r => r.status === 'DELIVERED').length, color: '#10b981' },
-    { name: 'ملغي', value: filteredRepairs.filter(r => r.status === 'CANCELLED').length, color: '#ef4444' },
-  ].filter(d => d.value > 0);
+  // بيانات أكثر المشاكل تكراراً
+  const problemData = useMemo(() => {
+    const problemCounts: Record<string, number> = {};
+    filteredRepairs.forEach(r => {
+      if (r.problem) {
+        problemCounts[r.problem] = (problemCounts[r.problem] || 0) + 1;
+      }
+    });
+    return Object.entries(problemCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [filteredRepairs]);
 
   // بيانات فئات المصاريف
   const expenseCategoryData = useMemo(() => {
@@ -532,34 +540,34 @@ export function ReportsPage() {
       {/* الرسوم الدائرية */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* رسم دائري لحالات الصيانة */}
+        {/* رسم دائري لأكثر المشاكل تكراراً */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" />
-              حالات الصيانة
+              <Wrench className="h-5 w-5" />
+              أكثر المشاكل تكراراً
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {repairStatusData.length > 0 ? (
+            {problemData.length > 0 ? (
               <div className="h-[280px] w-full flex flex-col items-center">
                 <ResponsiveContainer width="100%" height={220}>
                   <RechartsPieChart>
                     <Pie
-                      data={repairStatusData}
+                      data={problemData}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
                       outerRadius={85}
                       dataKey="value"
                     >
-                      {repairStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      {problemData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                   </RechartsPieChart>
                 </ResponsiveContainer>
-                {renderCustomLegend(repairStatusData)}
+                {renderCustomLegend(problemData, COLORS)}
               </div>
             ) : (
               <div className="h-[200px] flex items-center justify-center text-muted-foreground">
