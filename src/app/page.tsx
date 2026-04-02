@@ -59,7 +59,8 @@ function HomeContent() {
   } = useAppStore();
 
   // التعامل مع زر الرجوع في PWA - ضغطة للرجوع للرئيسية، ضغطة ثانية للخروج
-  const isNavigatingBack = useRef(false);
+  const [showExitMessage, setShowExitMessage] = useState(false);
+  const lastBackPress = useRef(0);
 
   // تحميل البيانات من localStorage
   useEffect(() => {
@@ -108,27 +109,46 @@ function HomeContent() {
   // التعامل مع زر الرجوع في PWA
   const handleNavigate = useCallback((page: string) => {
     if (page !== currentPage) {
-      // إضافة state للتاريخ فقط إذا خرجنا من الرئيسية
+      // إضافة state للتاريخ للسماح بالرجوع
       if (currentPage === 'dashboard') {
-        window.history.pushState({ canGoBack: true }, '', `?tab=${page}`);
+        window.history.pushState({ fromDashboard: true }, '', `?tab=${page}`);
       }
       setCurrentPage(page);
+      setShowExitMessage(false);
     }
   }, [currentPage, setCurrentPage]);
 
   useEffect(() => {
     const handlePopState = () => {
-      // عند الضغط على زر الرجوع، ارجع للرئيسية
-      isNavigatingBack.current = true;
-      setCurrentPage('dashboard');
-      setTimeout(() => {
-        isNavigatingBack.current = false;
-      }, 100);
+      const now = Date.now();
+      
+      if (currentPage === 'dashboard') {
+        // نحن في الرئيسية - تحقق من الضغط المزدوج للخروج
+        if (now - lastBackPress.current < 2000) {
+          // ضغط مرتين خلال ثانيتين - اخرج
+          window.history.back();
+        } else {
+          // الضغطة الأولى - أظهر رسالة
+          lastBackPress.current = now;
+          setShowExitMessage(true);
+          // أعد إضافة state للسماح بالضغط مرة أخرى
+          window.history.pushState({ onDashboard: true }, '', '/');
+          // أخفِ الرسالة بعد ثانيتين
+          setTimeout(() => setShowExitMessage(false), 2000);
+        }
+      } else {
+        // نحن في صفحة أخرى - ارجع للرئيسية
+        setCurrentPage('dashboard');
+        setShowExitMessage(false);
+      }
     };
+
+    // أضف state مبدئي
+    window.history.pushState({ onDashboard: currentPage === 'dashboard' }, '', currentPage === 'dashboard' ? '/' : `?tab=${currentPage}`);
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [setCurrentPage]);
+  }, [setCurrentPage, currentPage]);
 
   // حفظ البيانات عند التغيير
   useEffect(() => {
@@ -180,6 +200,13 @@ function HomeContent() {
           {renderPage()}
         </div>
       </main>
+      
+      {/* رسالة الخروج */}
+      {showExitMessage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-pulse">
+          اضغط مرة أخرى للخروج
+        </div>
+      )}
     </div>
   );
 }
