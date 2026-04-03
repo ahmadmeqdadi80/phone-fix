@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { ExportDialog } from '@/components/export/ExportButton';
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, LabelList } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -480,47 +480,83 @@ export function ReportsPage() {
         <CardContent className="pt-0">
           <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorCostPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
                 <XAxis 
                   dataKey="name" 
                   tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tickLine={false}
                 />
                 <YAxis 
-                  width={40}
+                  width={45}
                   tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  axisLine={false}
+                  tickLine={false}
                 />
-                <Bar dataKey="sales" fill="#3b82f6" name="المبيعات" radius={[4, 4, 0, 0]}>
-                  <LabelList 
-                    dataKey="sales" 
-                    position="top" 
-                    formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
-                    style={{ fill: '#3b82f6', fontSize: 10, fontWeight: 'bold' }}
-                  />
-                </Bar>
-                <Bar dataKey="costPrice" fill="#f97316" name="سعر الشراء" radius={[4, 4, 0, 0]}>
-                  <LabelList 
-                    dataKey="costPrice" 
-                    position="top" 
-                    formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
-                    style={{ fill: '#f97316', fontSize: 10, fontWeight: 'bold' }}
-                  />
-                </Bar>
-                <Bar dataKey="expenses" fill="#ef4444" name="المصاريف" radius={[4, 4, 0, 0]}>
-                  <LabelList 
-                    dataKey="expenses" 
-                    position="top" 
-                    formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
-                    style={{ fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }}
-                  />
-                </Bar>
-              </BarChart>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                  labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
+                  formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = {
+                      sales: 'المبيعات',
+                      costPrice: 'سعر الشراء',
+                      expenses: 'المصاريف'
+                    };
+                    return [`${value.toLocaleString()} د.أ`, labels[name] || name];
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="sales" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorSales)" 
+                  name="المبيعات"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="costPrice" 
+                  stroke="#f97316" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorCostPrice)" 
+                  name="سعر الشراء"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="expenses" 
+                  stroke="#ef4444" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorExpenses)" 
+                  name="المصاريف"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
           {/* Legend */}
-          <div className="flex justify-center gap-6 mt-2 flex-wrap">
+          <div className="flex justify-center gap-6 mt-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-blue-500" />
               <span className="text-sm">المبيعات</span>
