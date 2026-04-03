@@ -480,7 +480,7 @@ export function ReportsPage() {
         <CardContent className="pt-0">
           <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
+              <BarChart data={monthlyData} margin={{ top: 30, right: 10, left: 5, bottom: 5 }} barCategoryGap="20%">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
                   dataKey="name" 
@@ -488,12 +488,12 @@ export function ReportsPage() {
                   axisLine={{ stroke: 'hsl(var(--border))' }}
                 />
                 <YAxis 
-                  width={40}
+                  width={45}
                   tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
                 />
                 {/* عمود المبيعات منفصل */}
-                <Bar dataKey="sales" fill="#3b82f6" name="المبيعات" radius={[4, 4, 0, 0]} barSize={40}>
+                <Bar dataKey="sales" fill="#3b82f6" name="المبيعات" radius={[4, 4, 0, 0]} barSize={35}>
                   <LabelList 
                     dataKey="sales" 
                     position="top" 
@@ -502,17 +502,24 @@ export function ReportsPage() {
                   />
                 </Bar>
                 {/* عمود سعر الشراء والمصاريف مكدسين */}
-                <Bar dataKey="costPrice" fill="#f97316" name="سعر الشراء" stackId="costs" radius={[0, 0, 0, 0]}>
+                <Bar 
+                  dataKey="costPrice" 
+                  fill="#f97316" 
+                  name="سعر الشراء" 
+                  stackId="costs" 
+                  barSize={35}
+                />
+                <Bar 
+                  dataKey="expenses" 
+                  fill="#ef4444" 
+                  name="المصاريف" 
+                  stackId="costs" 
+                  radius={[4, 4, 0, 0]}
+                  barSize={35}
+                >
                   <LabelList 
-                    dataKey="costPrice" 
-                    position="center" 
-                    formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
-                    style={{ fill: '#fff', fontSize: 9, fontWeight: 'bold' }}
-                  />
-                </Bar>
-                <Bar dataKey="expenses" fill="#ef4444" name="المصاريف" stackId="costs" radius={[4, 4, 0, 0]}>
-                  <LabelList 
-                    dataKey="expenses" 
+                    value={undefined}
+                    dataKey={(data: { costPrice: number; expenses: number }) => data.costPrice + data.expenses}
                     position="top" 
                     formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
                     style={{ fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }}
