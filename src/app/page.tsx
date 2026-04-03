@@ -13,8 +13,59 @@ import { ExpensesPage } from '@/components/expenses/ExpensesPage';
 import { DebtsPage } from '@/components/debts/DebtsPage';
 import { ReportsPage } from '@/components/reports/ReportsPage';
 import { BackupRestore } from '@/components/backup/BackupRestore';
+import { Wrench, Smartphone, Settings } from 'lucide-react';
 
 const STORAGE_KEY = 'mobileRepairApp_v3';
+
+// مكون صفحة التحميل
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="relative">
+        {/* خلفية متحركة */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-32 h-32 rounded-full bg-blue-500/10 animate-ping"></div>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-24 h-24 rounded-full bg-green-500/10 animate-ping" style={{ animationDelay: '0.3s' }}></div>
+        </div>
+        
+        {/* الشعار */}
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="relative">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 animate-pulse">
+              <Smartphone className="w-10 h-10 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
+              <Wrench className="w-4 h-4 text-white" />
+            </div>
+          </div>
+          
+          {/* النص */}
+          <h1 className="mt-6 text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            صيانة الموبايل
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">نظام إدارة ورشة الصيانة</p>
+          
+          {/* شريط التحميل */}
+          <div className="mt-6 w-48 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full animate-loading-bar"></div>
+          </div>
+          
+          <p className="mt-4 text-xs text-muted-foreground animate-pulse">جاري التحميل...</p>
+        </div>
+      </div>
+      
+      {/* أيقونات متحركة في الخلفية */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <Settings className="absolute top-20 left-10 w-8 h-8 text-blue-500/10 animate-spin-slow" />
+        <Settings className="absolute bottom-20 right-10 w-12 h-12 text-green-500/10 animate-spin-slow-reverse" />
+        <Smartphone className="absolute top-1/3 right-20 w-6 h-6 text-blue-500/10 animate-float" />
+        <Wrench className="absolute bottom-1/3 left-20 w-6 h-6 text-green-500/10 animate-float-delayed" />
+      </div>
+    </div>
+  );
+}
 
 // بيانات تجريبية
 const sampleData = {
@@ -112,11 +163,7 @@ function HomeContent() {
   }, [customers, repairs, inventory, invoices, expenses, mounted]);
 
   if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const renderPage = () => {
@@ -158,11 +205,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingScreen />}>
       <HomeContent />
     </Suspense>
   );
