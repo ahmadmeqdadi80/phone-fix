@@ -55,7 +55,7 @@ export function CustomersPage() {
   const filteredCustomers = useMemo(() => customers.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.phone.includes(searchTerm)
-  ), [customers, searchTerm]);
+  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [customers, searchTerm]);
 
   // عرض عدد محدود من العناصر مع إمكانية التحميل
   const visibleCustomers = useMemo(() => {
