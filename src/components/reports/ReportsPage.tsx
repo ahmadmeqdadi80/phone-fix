@@ -234,12 +234,12 @@ export function ReportsPage() {
       for (let i = 0; i < 12; i++) {
         const monthStart = new Date(now.getFullYear(), i, 1);
         const monthEnd = new Date(now.getFullYear(), i + 1, 0, 23, 59, 59);
-        
+
         const monthDelivered = repairs.filter(r => {
           const date = new Date(r.createdAt);
           return date >= monthStart && date <= monthEnd && r.status === 'DELIVERED';
         });
-        
+
         const monthSales = monthDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
         const monthCost = monthDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
         const monthExpenses = expenses.filter(e => {
@@ -259,16 +259,25 @@ export function ReportsPage() {
       // عرض أسابيع الشهر
       const targetMonth = period === 'lastMonth' ? now.getMonth() - 1 : now.getMonth();
       const daysInMonth = new Date(now.getFullYear(), targetMonth + 1, 0).getDate();
-      
-      for (let week = 0; week < 4; week++) {
-        const weekStart = new Date(now.getFullYear(), targetMonth, week * 7 + 1);
-        const weekEnd = new Date(now.getFullYear(), targetMonth, Math.min((week + 1) * 7, daysInMonth), 23, 59, 59);
-        
+
+      // تقسيم الشهر إلى 5 أسابيع (أسبوع 1-7، 8-14، 15-21، 22-28، 29-نهاية الشهر)
+      const weeks = [
+        { start: 1, end: 7 },
+        { start: 8, end: 14 },
+        { start: 15, end: 21 },
+        { start: 22, end: 28 },
+        { start: 29, end: daysInMonth },
+      ];
+
+      weeks.forEach((week, index) => {
+        const weekStart = new Date(now.getFullYear(), targetMonth, week.start, 0, 0, 0);
+        const weekEnd = new Date(now.getFullYear(), targetMonth, week.end, 23, 59, 59);
+
         const weekDelivered = repairs.filter(r => {
           const date = new Date(r.createdAt);
           return date >= weekStart && date <= weekEnd && r.status === 'DELIVERED';
         });
-        
+
         const weekSales = weekDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
         const weekCost = weekDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
         const weekExpenses = expenses.filter(e => {
@@ -277,7 +286,53 @@ export function ReportsPage() {
         }).reduce((sum, e) => sum + e.amount, 0);
 
         data.push({
-          name: `الأسبوع ${week + 1}`,
+          name: `${week.start}-${week.end}`,
+          sales: weekSales,
+          costPrice: weekCost,
+          expenses: weekExpenses,
+          profit: weekSales - weekCost - weekExpenses,
+        });
+      });
+    } else if (period === 'lastMonth22') {
+      // من يوم 22 الشهر الماضي إلى يوم 21 هذا الشهر - تقسيم إلى أسابيع
+      const currentDay = now.getDate();
+      let start: Date;
+      let end: Date;
+
+      if (currentDay >= 22) {
+        start = new Date(now.getFullYear(), now.getMonth(), 22, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 21, 23, 59, 59);
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 22, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), 21, 23, 59, 59);
+      }
+
+      // تقسيم الفترة إلى 4 أسابيع
+      const totalDays = Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+      const daysPerWeek = Math.ceil(totalDays / 4);
+
+      for (let week = 0; week < 4; week++) {
+        const weekStart = new Date(start.getTime() + week * daysPerWeek * 24 * 60 * 60 * 1000);
+        const weekEnd = week === 3 ? end : new Date(start.getTime() + (week + 1) * daysPerWeek * 24 * 60 * 60 * 1000 - 1);
+
+        const weekDelivered = repairs.filter(r => {
+          const date = new Date(r.createdAt);
+          return date >= weekStart && date <= weekEnd && r.status === 'DELIVERED';
+        });
+
+        const weekSales = weekDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
+        const weekCost = weekDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
+        const weekExpenses = expenses.filter(e => {
+          const date = new Date(e.date);
+          return date >= weekStart && date <= weekEnd;
+        }).reduce((sum, e) => sum + e.amount, 0);
+
+        const startDay = weekStart.getDate();
+        const endDay = weekEnd.getDate();
+        const monthName = weekStart.toLocaleDateString('ar-SA', { month: 'short' });
+
+        data.push({
+          name: `${startDay}-${endDay} ${monthName}`,
           sales: weekSales,
           costPrice: weekCost,
           expenses: weekExpenses,
@@ -290,12 +345,12 @@ export function ReportsPage() {
         const dayDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         const dayStart = new Date(dayDate.setHours(0, 0, 0, 0));
         const dayEnd = new Date(dayDate.setHours(23, 59, 59, 999));
-        
+
         const dayDelivered = repairs.filter(r => {
           const date = new Date(r.createdAt);
           return date >= dayStart && date <= dayEnd && r.status === 'DELIVERED';
         });
-        
+
         const daySales = dayDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
         const dayCost = dayDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
         const dayExpenses = expenses.filter(e => {
@@ -311,31 +366,56 @@ export function ReportsPage() {
           profit: daySales - dayCost - dayExpenses,
         });
       }
-    } else {
-      // للفترات الأخرى، نعرض آخر 7 أيام
-      for (let i = 6; i >= 0; i--) {
-        const dayDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        const dayStart = new Date(dayDate.setHours(0, 0, 0, 0));
-        const dayEnd = new Date(dayDate.setHours(23, 59, 59, 999));
-        
-        const dayDelivered = repairs.filter(r => {
+    } else if (period === 'day') {
+      // عرض ساعات اليوم
+      for (let hour = 0; hour < 24; hour += 4) {
+        const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0);
+        const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Math.min(hour + 4, 24) - 1, 59, 59);
+
+        const hourDelivered = repairs.filter(r => {
           const date = new Date(r.createdAt);
-          return date >= dayStart && date <= dayEnd && r.status === 'DELIVERED';
+          return date >= hourStart && date <= hourEnd && r.status === 'DELIVERED';
         });
-        
-        const daySales = dayDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
-        const dayCost = dayDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
-        const dayExpenses = expenses.filter(e => {
+
+        const hourSales = hourDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
+        const hourCost = hourDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
+        const hourExpenses = expenses.filter(e => {
           const date = new Date(e.date);
-          return date >= dayStart && date <= dayEnd;
+          return date >= hourStart && date <= hourEnd;
         }).reduce((sum, e) => sum + e.amount, 0);
 
         data.push({
-          name: dayStart.toLocaleDateString('ar-SA', { weekday: 'short' }),
-          sales: daySales,
-          costPrice: dayCost,
-          expenses: dayExpenses,
-          profit: daySales - dayCost - dayExpenses,
+          name: `${hour}:00`,
+          sales: hourSales,
+          costPrice: hourCost,
+          expenses: hourExpenses,
+          profit: hourSales - hourCost - hourExpenses,
+        });
+      }
+    } else {
+      // للفترات الأخرى (all)، نعرض آخر 30 يوم مقسمة إلى أسابيع
+      for (let week = 0; week < 5; week++) {
+        const weekEnd = new Date(now.getTime() - (4 - week) * 7 * 24 * 60 * 60 * 1000);
+        const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        const weekDelivered = repairs.filter(r => {
+          const date = new Date(r.createdAt);
+          return date >= weekStart && date <= weekEnd && r.status === 'DELIVERED';
+        });
+
+        const weekSales = weekDelivered.reduce((sum, r) => sum + (r.finalCost || 0), 0);
+        const weekCost = weekDelivered.reduce((sum, r) => sum + (r.maintenanceCost || 0), 0);
+        const weekExpenses = expenses.filter(e => {
+          const date = new Date(e.date);
+          return date >= weekStart && date <= weekEnd;
+        }).reduce((sum, e) => sum + e.amount, 0);
+
+        data.push({
+          name: `${weekStart.getDate()}-${weekEnd.getDate()}`,
+          sales: weekSales,
+          costPrice: weekCost,
+          expenses: weekExpenses,
+          profit: weekSales - weekCost - weekExpenses,
         });
       }
     }
