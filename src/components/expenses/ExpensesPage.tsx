@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,80 @@ const expenseCategories = [
   'مصاريف بنكية',
   'أخرى',
 ];
+
+// مكون الإدخال التنبؤي
+function PredictiveInput({ 
+  value, 
+  onChange, 
+  suggestions, 
+  placeholder, 
+  className = "h-10",
+  dir = "rtl"
+}: { 
+  value: string; 
+  onChange: (value: string) => void; 
+  suggestions: string[]; 
+  placeholder?: string;
+  className?: string;
+  dir?: string;
+}) {
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filteredSuggestions = useMemo(() => {
+    if (value) {
+      return suggestions.filter(s => 
+        s.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5);
+    }
+    return suggestions.slice(0, 5);
+  }, [value, suggestions]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setShowSuggestions(true);
+        }}
+        onFocus={() => setShowSuggestions(true)}
+        placeholder={placeholder}
+        className={className}
+        dir={dir}
+      />
+      {showSuggestions && filteredSuggestions.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {filteredSuggestions.map((suggestion, i) => (
+            <button
+              key={i}
+              type="button"
+              className="w-full px-3 py-2 text-right text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => {
+                onChange(suggestion);
+                setShowSuggestions(false);
+              }}
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ExpensesPage() {
   const { expenses, addExpense, updateExpense, deleteExpense } = useAppStore();
@@ -139,6 +213,16 @@ export function ExpensesPage() {
     setEditingExpense(null);
   };
 
+  // قوائم الاقتراحات من المصاريف السابقة
+  const descriptionSuggestions = useMemo(() => 
+    [...new Set(expenses.map(e => e.description).filter(d => d))],
+  [expenses]);
+
+  const categorySuggestions = useMemo(() => {
+    const usedCategories = [...new Set(expenses.map(e => e.category).filter(c => c))];
+    return [...new Set([...expenseCategories, ...usedCategories])];
+  }, [expenses]);
+
   // إحصائيات
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   
@@ -191,22 +275,19 @@ export function ExpensesPage() {
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>الفئة *</Label>
-                <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الفئة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {expenseCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PredictiveInput
+                  value={formData.category}
+                  onChange={(v) => setFormData({ ...formData, category: v })}
+                  suggestions={categorySuggestions}
+                  placeholder="اختر أو أدخل الفئة"
+                />
               </div>
               <div className="space-y-2">
                 <Label>الوصف *</Label>
-                <Input
+                <PredictiveInput
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(v) => setFormData({ ...formData, description: v })}
+                  suggestions={descriptionSuggestions}
                   placeholder="وصف المصروف"
                 />
               </div>
