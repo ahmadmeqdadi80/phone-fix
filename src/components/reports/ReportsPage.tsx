@@ -492,7 +492,8 @@ export function ReportsPage() {
                   tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
                   axisLine={{ stroke: 'hsl(var(--border))' }}
                 />
-                <Bar dataKey="sales" fill="#3b82f6" name="المبيعات" radius={[4, 4, 0, 0]}>
+                {/* عمود المبيعات منفصل */}
+                <Bar dataKey="sales" fill="#3b82f6" name="المبيعات" radius={[4, 4, 0, 0]} barSize={40}>
                   <LabelList 
                     dataKey="sales" 
                     position="top" 
@@ -500,15 +501,16 @@ export function ReportsPage() {
                     style={{ fill: '#3b82f6', fontSize: 10, fontWeight: 'bold' }}
                   />
                 </Bar>
-                <Bar dataKey="costPrice" fill="#f97316" name="سعر الشراء" radius={[4, 4, 0, 0]}>
+                {/* عمود سعر الشراء والمصاريف مكدسين */}
+                <Bar dataKey="costPrice" fill="#f97316" name="سعر الشراء" stackId="costs" radius={[0, 0, 0, 0]}>
                   <LabelList 
                     dataKey="costPrice" 
-                    position="top" 
+                    position="center" 
                     formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
-                    style={{ fill: '#f97316', fontSize: 10, fontWeight: 'bold' }}
+                    style={{ fill: '#fff', fontSize: 9, fontWeight: 'bold' }}
                   />
                 </Bar>
-                <Bar dataKey="expenses" fill="#ef4444" name="المصاريف" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="expenses" fill="#ef4444" name="المصاريف" stackId="costs" radius={[4, 4, 0, 0]}>
                   <LabelList 
                     dataKey="expenses" 
                     position="top" 
