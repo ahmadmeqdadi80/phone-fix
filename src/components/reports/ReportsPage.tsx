@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { ExportDialog } from '@/components/export/ExportButton';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -469,7 +469,7 @@ export function ReportsPage() {
         </CardContent>
       </Card>
 
-      {/* رسم بياني للمبيعات والمصاريف */}
+      {/* جدول المبيعات والمصاريف */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
@@ -478,84 +478,40 @@ export function ReportsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="w-full h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={true} vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  width={50}
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--popover))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  }}
-                  labelStyle={{ fontWeight: 'bold', marginBottom: '8px', color: 'hsl(var(--foreground))' }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number, name: string) => {
-                    const labels: Record<string, string> = {
-                      sales: 'المبيعات',
-                      costPrice: 'سعر الشراء',
-                      expenses: 'المصاريف'
-                    };
-                    return [`${value.toLocaleString()} د.أ`, labels[name] || name];
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="sales" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: '#3b82f6' }}
-                  name="sales"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="costPrice" 
-                  stroke="#f97316" 
-                  strokeWidth={3}
-                  dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: '#f97316' }}
-                  name="costPrice"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="expenses" 
-                  stroke="#ef4444" 
-                  strokeWidth={3}
-                  dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: '#ef4444' }}
-                  name="expenses"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {/* Legend */}
-          <div className="flex justify-center gap-6 mt-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-sm">المبيعات</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-500" />
-              <span className="text-sm">سعر الشراء</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-sm">المصاريف</span>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-right py-3 px-2 font-medium text-muted-foreground">الفترة</th>
+                  <th className="text-left py-3 px-2 font-medium text-blue-600">المبيعات</th>
+                  <th className="text-left py-3 px-2 font-medium text-orange-600">سعر الشراء</th>
+                  <th className="text-left py-3 px-2 font-medium text-red-600">المصاريف</th>
+                  <th className="text-left py-3 px-2 font-medium text-green-600">الربح</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyData.map((row, index) => (
+                  <tr key={index} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                    <td className="py-3 px-2 font-medium">{row.name}</td>
+                    <td className="py-3 px-2 text-left text-blue-600 font-bold">{row.sales > 0 ? row.sales.toLocaleString() : '-'}</td>
+                    <td className="py-3 px-2 text-left text-orange-600 font-bold">{row.costPrice > 0 ? row.costPrice.toLocaleString() : '-'}</td>
+                    <td className="py-3 px-2 text-left text-red-600 font-bold">{row.expenses > 0 ? row.expenses.toLocaleString() : '-'}</td>
+                    <td className={`py-3 px-2 text-left font-bold ${row.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {row.profit !== 0 ? row.profit.toLocaleString() : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-muted/50 font-bold">
+                  <td className="py-3 px-2">الإجمالي</td>
+                  <td className="py-3 px-2 text-left text-blue-600">{totalSales.toLocaleString()}</td>
+                  <td className="py-3 px-2 text-left text-orange-600">{totalCostPrice.toLocaleString()}</td>
+                  <td className="py-3 px-2 text-left text-red-600">{totalExpenses.toLocaleString()}</td>
+                  <td className={`py-3 px-2 text-left ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{totalProfit.toLocaleString()}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </CardContent>
       </Card>
