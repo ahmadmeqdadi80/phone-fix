@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { ExportDialog } from '@/components/export/ExportButton';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -480,42 +480,29 @@ export function ReportsPage() {
         <CardContent className="pt-0">
           <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorCostPrice" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+              <LineChart data={monthlyData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={true} vertical={false} />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  axisLine={false}
                   tickLine={false}
                 />
                 <YAxis 
-                  width={45}
-                  tick={{ fill: 'hsl(var(--foreground))', fontSize: 11 }}
+                  width={50}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
+                    backgroundColor: 'hsl(var(--popover))', 
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                   }}
-                  labelStyle={{ fontWeight: 'bold', marginBottom: '8px' }}
+                  labelStyle={{ fontWeight: 'bold', marginBottom: '8px', color: 'hsl(var(--foreground))' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: number, name: string) => {
                     const labels: Record<string, string> = {
                       sales: 'المبيعات',
@@ -525,34 +512,34 @@ export function ReportsPage() {
                     return [`${value.toLocaleString()} د.أ`, labels[name] || name];
                   }}
                 />
-                <Area 
+                <Line 
                   type="monotone" 
                   dataKey="sales" 
                   stroke="#3b82f6" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorSales)" 
-                  name="المبيعات"
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#3b82f6' }}
+                  name="sales"
                 />
-                <Area 
+                <Line 
                   type="monotone" 
                   dataKey="costPrice" 
                   stroke="#f97316" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorCostPrice)" 
-                  name="سعر الشراء"
+                  strokeWidth={3}
+                  dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#f97316' }}
+                  name="costPrice"
                 />
-                <Area 
+                <Line 
                   type="monotone" 
                   dataKey="expenses" 
                   stroke="#ef4444" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorExpenses)" 
-                  name="المصاريف"
+                  strokeWidth={3}
+                  dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#ef4444' }}
+                  name="expenses"
                 />
-              </AreaChart>
+              </LineChart>
             </ResponsiveContainer>
           </div>
           {/* Legend */}
