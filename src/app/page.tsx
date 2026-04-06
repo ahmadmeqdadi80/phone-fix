@@ -13,59 +13,12 @@ import { ExpensesPage } from '@/components/expenses/ExpensesPage';
 import { DebtsPage } from '@/components/debts/DebtsPage';
 import { ReportsPage } from '@/components/reports/ReportsPage';
 import { BackupRestore } from '@/components/backup/BackupRestore';
-import { Wrench, Smartphone, Settings } from 'lucide-react';
 
 const STORAGE_KEY = 'mobileRepairApp_v3';
 
-// مكون صفحة التحميل
-function LoadingScreen() {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="relative">
-        {/* خلفية متحركة */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-32 h-32 rounded-full bg-blue-500/10 animate-ping"></div>
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-24 h-24 rounded-full bg-green-500/10 animate-ping" style={{ animationDelay: '0.3s' }}></div>
-        </div>
-        
-        {/* الشعار */}
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 animate-pulse">
-              <Smartphone className="w-10 h-10 text-white" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
-              <Wrench className="w-4 h-4 text-white" />
-            </div>
-          </div>
-          
-          {/* النص */}
-          <h1 className="mt-6 text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-            صيانة الموبايل
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">نظام إدارة ورشة الصيانة</p>
-          
-          {/* شريط التحميل */}
-          <div className="mt-6 w-48 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full animate-loading-bar"></div>
-          </div>
-          
-          <p className="mt-4 text-xs text-muted-foreground animate-pulse">جاري التحميل...</p>
-        </div>
-      </div>
-      
-      {/* أيقونات متحركة في الخلفية */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <Settings className="absolute top-20 left-10 w-8 h-8 text-blue-500/10 animate-spin-slow" />
-        <Settings className="absolute bottom-20 right-10 w-12 h-12 text-green-500/10 animate-spin-slow-reverse" />
-        <Smartphone className="absolute top-1/3 right-20 w-6 h-6 text-blue-500/10 animate-float" />
-        <Wrench className="absolute bottom-1/3 left-20 w-6 h-6 text-green-500/10 animate-float-delayed" />
-      </div>
-    </div>
-  );
-}
+// ⚙️ مدة شاشة التحميل بالميلي ثانية (يمكن تغييرها)
+// 1000 = ثانية واحدة، 3000 = 3 ثواني، 0 = بدون تأخير
+const SPLASH_SCREEN_DURATION = 3000;
 
 // بيانات تجريبية
 const sampleData = {
@@ -103,6 +56,7 @@ const sampleData = {
 
 function HomeContent() {
   const [mounted, setMounted] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const searchParams = useSearchParams();
   const { 
     customers, repairs, inventory, invoices, expenses, currentPage,
@@ -111,6 +65,8 @@ function HomeContent() {
 
   // تحميل البيانات من localStorage
   useEffect(() => {
+    const startTime = Date.now();
+    
     const loadSampleData = () => {
       setCustomers(sampleData.customers);
       setRepairs(sampleData.repairs);
@@ -118,6 +74,14 @@ function HomeContent() {
       setInvoices(sampleData.invoices);
       setExpenses(sampleData.expenses);
     };
+
+    // محاكاة تقدم التحميل
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 15;
+      });
+    }, 200);
 
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -129,22 +93,32 @@ function HomeContent() {
         if (data.invoices) setInvoices(data.invoices);
         if (data.expenses) setExpenses(data.expenses);
       } catch(e) {
-        // في حالة الخطأ، استخدم البيانات التجريبية
         loadSampleData();
       }
     } else {
-      // لا توجد بيانات محفوظة، استخدم البيانات التجريبية
       loadSampleData();
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
+
+    // حساب الوقت المتبقي من مدة شاشة التحميل
+    const elapsedTime = Date.now() - startTime;
+    const remainingTime = Math.max(0, SPLASH_SCREEN_DURATION - elapsedTime);
+
+    // إكمال التحميل وإخفاء شاشة البداية بعد المدة المحددة
+    setTimeout(() => {
+      clearInterval(progressInterval);
+      setLoadingProgress(100);
+      setTimeout(() => {
+        setMounted(true);
+      }, 300);
+    }, remainingTime);
+
+    return () => clearInterval(progressInterval);
+  }, [setCustomers, setRepairs, setInventory, setInvoices, setExpenses]);
 
   // دعم التنقل عبر query param (للـ PWA shortcuts)
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab && ['dashboard', 'customers', 'repairs', 'maintenance', 'inventory', 'invoices', 'expenses', 'debts', 'reports', 'backup'].includes(tab)) {
-      // تحويل maintenance إلى repairs
       if (tab === 'maintenance') {
         setCurrentPage('repairs');
       } else {
@@ -163,7 +137,50 @@ function HomeContent() {
   }, [customers, repairs, inventory, invoices, expenses, mounted]);
 
   if (!mounted) {
-    return <LoadingScreen />;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 relative overflow-hidden">
+        {/* خلفية متحركة */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        </div>
+
+        {/* أيقونة الهاتف */}
+        <div className="relative z-10 mb-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/20 rounded-3xl blur-xl scale-150 animate-pulse"></div>
+            <div className="relative bg-white/20 backdrop-blur-sm p-6 rounded-3xl border border-white/30 shadow-2xl">
+              <svg className="w-20 h-20 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.5 10.5L12 8m0 0l-2.5 2.5M12 8v6" className="animate-bounce" style={{ transformOrigin: 'center' }} />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* العنوان */}
+        <div className="relative z-10 text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">صيانة الجوال</h1>
+          <p className="text-white/80 text-lg">نظام إدارة ورشة الصيانة</p>
+        </div>
+
+        {/* شريط التحميل مع النسبة المئوية */}
+        <div className="relative z-10 w-64">
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+            <div className="h-full bg-white rounded-full shadow-lg transition-all duration-200 ease-out" style={{ width: `${loadingProgress}%` }}></div>
+          </div>
+          <p className="text-white/90 text-sm text-center mt-3 font-medium">{Math.round(loadingProgress)}%</p>
+        </div>
+
+        {/* النقاط المتحركة */}
+        <div className="absolute bottom-8 flex gap-2 z-10">
+          <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+          <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+          <div className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+        </div>
+      </div>
+    );
   }
 
   const renderPage = () => {
@@ -205,7 +222,35 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+        <div className="relative z-10 mb-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/20 rounded-3xl blur-xl scale-150 animate-pulse"></div>
+            <div className="relative bg-white/20 backdrop-blur-sm p-6 rounded-3xl border border-white/30 shadow-2xl">
+              <svg className="w-20 h-20 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.5 10.5L12 8m0 0l-2.5 2.5M12 8v6" className="animate-bounce" style={{ transformOrigin: 'center' }} />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div className="relative z-10 text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">صيانة الجوال</h1>
+          <p className="text-white/80 text-lg">نظام إدارة ورشة الصيانة</p>
+        </div>
+        <div className="relative z-10 w-64">
+          <div className="h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+            <div className="h-full bg-white rounded-full shadow-lg animate-loading-bar"></div>
+          </div>
+          <p className="text-white/70 text-sm text-center mt-3 animate-pulse">جاري التحميل...</p>
+        </div>
+      </div>
+    }>
       <HomeContent />
     </Suspense>
   );
