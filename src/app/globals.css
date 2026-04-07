@@ -121,23 +121,19 @@
   }
 }
 
-/* Safe area for mobile devices */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Better touch scrolling on iOS */
 .overflow-y-auto, .overflow-x-auto, .overflow-auto {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Hide scrollbar on mobile for cleaner look */
 @media (max-width: 768px) {
   .overflow-y-auto::-webkit-scrollbar,
   .overflow-x-auto::-webkit-scrollbar,
@@ -152,83 +148,30 @@ html {
   }
 }
 
-/* Prevent text selection on interactive elements */
 button, a, [role="button"] {
   -webkit-user-select: none;
   user-select: none;
 }
 
-/* Active state for touch */
 button:active, a:active, [role="button"]:active {
   opacity: 0.8;
 }
 
-/* Loading screen animations */
 @keyframes loading-bar {
   0% {
     width: 0%;
+    margin-left: 0%;
   }
   50% {
-    width: 70%;
+    width: 60%;
+    margin-left: 20%;
   }
   100% {
-    width: 100%;
-  }
-}
-
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes spin-slow-reverse {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes float-delayed {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
+    width: 0%;
+    margin-left: 100%;
   }
 }
 
 .animate-loading-bar {
-  animation: loading-bar 2s ease-in-out infinite;
-}
-
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
-}
-
-.animate-spin-slow-reverse {
-  animation: spin-slow-reverse 10s linear infinite;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-  animation: float-delayed 3s ease-in-out infinite;
-  animation-delay: 1.5s;
+  animation: loading-bar 1.5s ease-in-out infinite;
 }
